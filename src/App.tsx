@@ -42,6 +42,7 @@ export default function App() {
         .single();
 
       if (error || !data) {
+        console.error('Supabase Error:', error);
         alert('Failed to create meeting. Please try again.');
         return;
       }
