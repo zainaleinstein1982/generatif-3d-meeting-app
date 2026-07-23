@@ -1,13 +1,14 @@
+import { useState, useEffect } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, Stars, Float, Text, useTexture } from '@react-three/drei';
-import { Suspense } from 'react';
+import * as THREE from 'three';
 
 interface SceneViewportProps {
   presenterModel?: any;
   isPresenting?: boolean;
 }
 
-// 1. Model Default (Hologram Sphere & Ring)
+// 1. Model Default
 function DefaultAvatar({ isPresenting }: { isPresenting?: boolean }) {
   return (
     <Float speed={isPresenting ? 5 : 1.5} rotationIntensity={isPresenting ? 1.5 : 0.4} floatIntensity={0.5}>
@@ -28,7 +29,7 @@ function DefaultAvatar({ isPresenting }: { isPresenting?: boolean }) {
   );
 }
 
-// 2. Model Generative Cube Matrix
+// 2. Model Generative Cube
 function CubeAvatar({ isPresenting }: { isPresenting?: boolean }) {
   return (
     <Float speed={isPresenting ? 4 : 2} rotationIntensity={1} floatIntensity={0.6}>
@@ -45,7 +46,7 @@ function CubeAvatar({ isPresenting }: { isPresenting?: boolean }) {
   );
 }
 
-// 3. Model Mouse 3D
+// 3. Model Mouse 3D Preset
 function MouseAvatar({ isPresenting }: { isPresenting?: boolean }) {
   return (
     <Float speed={isPresenting ? 4 : 2} rotationIntensity={0.6} floatIntensity={0.4}>
@@ -78,6 +79,7 @@ function PipelineDiagramAvatar() {
             <boxGeometry args={[0.9, 0.9, 0.9]} />
             <meshStandardMaterial color="#38bdf8" wireframe />
           </mesh>
+
           <Text position={[0, 0.7, 0]} fontSize={0.22} color="#38bdf8" anchorX="center" anchorY="middle">
             1. Camera Input
           </Text>
@@ -117,28 +119,34 @@ function PipelineDiagramAvatar() {
   );
 }
 
-// 5. BARU: Modul Generative 3D dari Gambar Import (JPEG / PNG)
-function Generative3DImage({ imageUrl }: { imageUrl: string }) {
+// 5. MESH GENERATIVE 3D BERVOLUME (Merekonstruksi Gambar 2D menjadi Bentuk Objek 3D)
+function GenerativeMeshFromImage({ imageUrl }: { imageUrl: string }) {
   const texture = useTexture(imageUrl);
 
   return (
-    <Float speed={2} rotationIntensity={0.3} floatIntensity={0.4}>
+    <Float speed={2} rotationIntensity={0.8} floatIntensity={0.4}>
       <group position={[0, 0, 0]}>
-        {/* Panel Frame 3D Utama yang menampilkan gambar */}
+        {/* Generative Volumetric 3D Mesh - Menggunakan Displacement Depth Map untuk Kontur 3D */}
         <mesh position={[0, 0, 0]}>
-          <boxGeometry args={[3.2, 2.2, 0.15]} />
-          <meshStandardMaterial map={texture} roughness={0.2} metalness={0.3} />
+          <planeGeometry args={[2.8, 2.2, 128, 128]} />
+          <meshStandardMaterial
+            map={texture}
+            displacementMap={texture}
+            displacementScale={0.6} // Memberikan efek timbul/3D bervolume
+            roughness={0.3}
+            metalness={0.4}
+            side={THREE.DoubleSide}
+          />
         </mesh>
 
-        {/* Bingkai Hologram 3D di sekeliling gambar */}
-        <mesh position={[0, 0, -0.01]}>
-          <boxGeometry args={[3.35, 2.35, 0.1]} />
-          <meshStandardMaterial color="#38bdf8" wireframe />
+        {/* Belakang Mesh - Penutup Volumetric 3D */}
+        <mesh position={[0, 0, -0.3]}>
+          <boxGeometry args={[2.85, 2.25, 0.2]} />
+          <meshStandardMaterial color="#0f172a" roughness={0.8} metalness={0.8} />
         </mesh>
 
-        {/* Label AI Generative Output */}
-        <Text position={[0, -1.35, 0]} fontSize={0.2} color="#38bdf8" anchorX="center" anchorY="middle">
-          ✨ Generative 3D Mesh Output
+        <Text position={[0, -1.4, 0]} fontSize={0.2} color="#38bdf8" anchorX="center" anchorY="middle">
+          ✨ Reconstructed Generative 3D Mesh
         </Text>
       </group>
     </Float>
@@ -153,11 +161,7 @@ export default function SceneViewport({ presenterModel, isPresenting = false }: 
 
   const renderModel = () => {
     if (isCustomImage && presenterModel?.imageUrl) {
-      return (
-        <Suspense fallback={null}>
-          <Generative3DImage imageUrl={presenterModel.imageUrl} />
-        </Suspense>
-      );
+      return <GenerativeMeshFromImage imageUrl={presenterModel.imageUrl} />;
     }
 
     switch (modelType) {
@@ -177,8 +181,8 @@ export default function SceneViewport({ presenterModel, isPresenting = false }: 
   return (
     <div className="w-full h-full relative">
       <Canvas camera={{ position: [0, 1.5, 5], fov: 50 }}>
-        <ambientLight intensity={0.9} />
-        <directionalLight position={[10, 10, 5]} intensity={1.2} />
+        <ambientLight intensity={1.2} />
+        <directionalLight position={[10, 10, 5]} intensity={1.5} />
         <pointLight position={[-10, -10, -10]} intensity={0.5} />
 
         <Stars radius={100} depth={50} count={3000} factor={4} saturation={0} fade speed={1} />
