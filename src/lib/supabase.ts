@@ -1,8 +1,8 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Tambahkan || 'https://placeholder.supabase.co' dan || 'placeholder-key'
-const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL as string) || https://chrqokxqyhpvddfwhhci.supabase.co;
-const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY as string) || eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imttd3RzaHd5eW53dXRia2d5b2VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2MDQ0MjUsImV4cCI6MjEwMDE4MDQyNX0.EW6DxsTYvJeQbi7RI3PNPlck5Z4NvUG8CeKEupLkk6M;
+const supabaseUrl = 'https://chrqokxqyhpvddfwhhci.supabase.co';
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imttd3RzaHd5eW53dXRia2d5b2VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2MDQ0MjUsImV4cCI6MjEwMDE4MDQyNX0.EW6DxsTYvJeQbi7RI3PNPlck5Z4NvUG8CeKEupLkk6M';
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   realtime: { params: { eventsPerSecond: 10 } },
