@@ -1,5 +1,5 @@
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Stars, Float, useGLTF } from '@react-three/drei';
+import { OrbitControls, Stars, Float, useGLTF, Text } from '@react-three/drei'; // 1. Tambahkan 'Text'
 
 interface SceneViewportProps {
   presenterModel?: any;
@@ -69,18 +69,59 @@ function MouseAvatar({ isPresenting }: { isPresenting?: boolean }) {
   );
 }
 
-// Catatan: Jika Anda memiliki file mouse.glb asli di folder public,
-// cukup hilangkan komentar (uncomment) komponen di bawah ini:
-/*
-function ExternalGlbMouse() {
-  const { scene } = useGLTF('./mouse.glb');
+// 4. BARU: Modul 3D Pipeline Diagram (Visualisasi AI 3D Workflow)
+function PipelineDiagramAvatar() {
   return (
-    <Float speed={2} rotationIntensity={0.5}>
-      <primitive object={scene} scale={1.5} position={[0, -0.5, 0]} />
+    <Float speed={1.5} rotationIntensity={0.2} floatIntensity={0.3}>
+      <group position={[0, 0, 0]}>
+        {/* Node 1: Camera Input */}
+        <group position={[-2.2, 0, 0]}>
+          <mesh>
+            <boxGeometry args={[0.9, 0.9, 0.9]} />
+            <meshStandardMaterial color="#38bdf8" wireframe />
+          </mesh>
+          <Text position={[0, 0.7, 0]} fontSize={0.22} color="#38bdf8" anchorX="center" anchorY="middle">
+            1. Camera Input
+          </Text>
+        </group>
+
+        {/* Garis Penghubung 1 */}
+        <mesh position={[-1.1, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.03, 0.03, 1.2, 16]} />
+          <meshBasicMaterial color="#38bdf8" />
+        </mesh>
+
+        {/* Node 2: AI Engine */}
+        <group position={[0, 0, 0]}>
+          <mesh>
+            <octahedronGeometry args={[0.7, 0]} />
+            <meshStandardMaterial color="#a855f7" roughness={0.2} metalness={0.9} />
+          </mesh>
+          <Text position={[0, 0.8, 0]} fontSize={0.24} color="#c084fc" anchorX="center" anchorY="middle">
+            2. AI 3D Engine
+          </Text>
+        </group>
+
+        {/* Garis Penghubung 2 */}
+        <mesh position={[1.1, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+          <cylinderGeometry args={[0.03, 0.03, 1.2, 16]} />
+          <meshBasicMaterial color="#38bdf8" />
+        </mesh>
+
+        {/* Node 3: 3D Render Output */}
+        <group position={[2.2, 0, 0]}>
+          <mesh scale={[0.6, 0.3, 0.9]}>
+            <boxGeometry args={[1, 1, 1]} />
+            <meshStandardMaterial color="#34d399" roughness={0.1} metalness={0.8} />
+          </mesh>
+          <Text position={[0, 0.7, 0]} fontSize={0.22} color="#34d399" anchorX="center" anchorY="middle">
+            3. 3D Sync Output
+          </Text>
+        </group>
+      </group>
     </Float>
   );
 }
-*/
 
 export default function SceneViewport({ presenterModel, isPresenting = false }: SceneViewportProps) {
   // Pengecekan ID model agar fleksibel
@@ -95,6 +136,8 @@ export default function SceneViewport({ presenterModel, isPresenting = false }: 
         return <CubeAvatar isPresenting={isPresenting} />;
       case 'mouse':
         return <MouseAvatar isPresenting={isPresenting} />;
+      case 'pipeline': // BARU: Menambahkan penanganan kasus 'pipeline'
+        return <PipelineDiagramAvatar />;
       case 'presenter':
         return <CubeAvatar isPresenting={isPresenting} />;
       default:
@@ -104,8 +147,8 @@ export default function SceneViewport({ presenterModel, isPresenting = false }: 
 
   return (
     <div className="w-full h-full relative">
-      <Canvas camera={{ position: [0, 1.5, 4], fov: 50 }}>
-        <ambientLight intensity={0.7} />
+      <Canvas camera={{ position: [0, 1.5, 5], fov: 50 }}>
+        <ambientLight intensity={0.8} />
         <directionalLight position={[10, 10, 5]} intensity={1.2} />
         <pointLight position={[-10, -10, -10]} intensity={0.5} />
 
@@ -120,7 +163,7 @@ export default function SceneViewport({ presenterModel, isPresenting = false }: 
           enableRotate={true}
           maxPolarAngle={Math.PI / 2 + 0.1}
           minDistance={2}
-          maxDistance={10}
+          maxDistance={12}
         />
       </Canvas>
     </div>
