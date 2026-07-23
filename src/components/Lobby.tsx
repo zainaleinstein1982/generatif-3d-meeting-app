@@ -1,117 +1,118 @@
 import { useState } from 'react';
-// Tambahkan Sparkles di sini
 import { Sparkles, ArrowRight, Video, MonitorPlay } from 'lucide-react';
-
-type Props = {
-  onJoin: (name: string, meetingId?: string) => void;
-};
 
 const AVATAR_COLORS = ['#4f8cff', '#22d3ee', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#8b5cf6', '#f97316'];
 
-export default function Lobby({ onJoin }: Props) {
-  const [name, setName] = useState('');
-  const [meetingId, setMeetingId] = useState('');
-  const [color] = useState(AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)]);
+interface LobbyProps {
+  onJoin: (name: string, meetingId?: string) => void;
+}
 
-  const handleJoin = () => {
-    if (!name.trim()) return;
-    onJoin(name.trim(), meetingId.trim() || undefined);
+export default function Lobby({ onJoin }: LobbyProps) {
+  const [name, setName] = useState('');
+  const [meetingCode, setMeetingCode] = useState('');
+
+  const handleCreateMeeting = () => {
+    if (!name.trim()) {
+      alert('Please enter your name first');
+      return;
+    }
+    onJoin(name);
   };
 
-  const handleCreate = () => {
-    if (!name.trim()) return;
-    onJoin(name.trim());
+  const handleJoinMeeting = () => {
+    if (!name.trim()) {
+      alert('Please enter your name first');
+      return;
+    }
+    if (!meetingCode.trim()) {
+      alert('Please enter a meeting code');
+      return;
+    }
+    onJoin(name, meetingCode);
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-slate-950">
-      {/* Background gradient */}
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-40 top-0 h-96 w-96 rounded-full bg-cyan-500/20 blur-[120px]" />
-        <div className="absolute -right-40 bottom-0 h-96 w-96 rounded-full bg-blue-500/20 blur-[120px]" />
-        <div className="absolute left-1/2 top-1/2 h-64 w-64 -translate-x-1/2 -translate-y-1/2 rounded-full bg-teal-500/10 blur-[100px]" />
-      </div>
-
-      <div className="relative z-10 flex min-h-screen flex-col items-center justify-center px-4">
-        <div className="mb-8 flex items-center gap-3">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400 to-blue-600 shadow-lg shadow-cyan-500/30">
-            <Sparkles className="h-6 w-6 text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-white">HoloMeet</h1>
-            <p className="text-sm text-slate-400">Generative 3D Meeting Space</p>
-          </div>
+    <div className="min-h-screen bg-slate-950 text-slate-200 flex flex-col p-6 font-sans">
+      <header className="flex items-center gap-3 pb-8 mb-8 border-b border-slate-800">
+        <div className="p-3 rounded-2xl bg-sky-600/10 border border-sky-600/20">
+          <Sparkles className="w-8 h-8 text-sky-400" />
         </div>
+        <div>
+          <h1 className="text-3xl font-bold text-slate-50 tracking-tight">HoloMeet</h1>
+          <p className="text-slate-400 text-lg">Generative 3D Meeting Space</p>
+        </div>
+      </header>
 
-        <div className="w-full max-w-md rounded-3xl border border-white/10 bg-slate-900/60 p-8 shadow-2xl backdrop-blur-xl">
-          <div className="mb-6 flex items-center justify-center">
-            <div
-              className="flex h-20 w-20 items-center justify-center rounded-full text-3xl font-bold text-white shadow-lg"
-              style={{ backgroundColor: color }}
-            >
-              {name.charAt(0).toUpperCase() || '?'}
-            </div>
+      <main className="flex-grow flex items-center justify-center py-12">
+        <div className="bg-slate-900/50 p-10 rounded-3xl border border-slate-800 shadow-2xl w-full max-w-xl">
+          {/* Avatar Area */}
+          <div className="mx-auto w-32 h-32 rounded-full bg-orange-400 flex items-center justify-center mb-8 border-4 border-slate-700/50 shadow-xl shadow-slate-900/50">
+            <span className="text-6xl text-slate-900 font-bold">?</span>
           </div>
 
-          <div className="space-y-4">
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-slate-400">Your Name</label>
+          <div className="space-y-6">
+            {/* Name Input */}
+            <div className="space-y-2">
+              <label htmlFor="name" className="text-sm font-medium text-slate-300">
+                Your Name
+              </label>
               <input
+                id="name"
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
                 placeholder="Enter your name"
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-slate-500 outline-none transition focus:border-cyan-500/50"
-                autoFocus
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-5 py-4 text-slate-100 placeholder:text-slate-500 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-lg"
               />
             </div>
 
-            <div>
-              <label className="mb-1.5 block text-xs font-medium text-slate-400">
+            {/* Meeting Code Input */}
+            <div className="space-y-2">
+              <label htmlFor="meetingCode" className="text-sm font-medium text-slate-300">
                 Meeting Code (optional)
               </label>
               <input
+                id="meetingCode"
                 type="text"
-                value={meetingId}
-                onChange={(e) => setMeetingId(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
+                value={meetingCode}
+                onChange={(e) => setMeetingCode(e.target.value)}
                 placeholder="Paste a meeting code to join"
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-slate-500 outline-none transition focus:border-cyan-500/50"
+                className="w-full bg-slate-800 border border-slate-700 rounded-xl px-5 py-4 text-slate-100 placeholder:text-slate-500 focus:ring-2 focus:ring-sky-500 focus:border-sky-500 text-lg"
               />
             </div>
 
+            {/* Join Button */}
             <button
-              onClick={handleJoin}
-              disabled={!name.trim()}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-500 px-4 py-3 font-semibold text-white transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-40"
+              onClick={handleJoinMeeting}
+              className="w-full bg-sky-600 text-white font-semibold rounded-xl px-6 py-4 flex items-center justify-center gap-3 hover:bg-sky-500 transition-colors duration-200 text-lg"
             >
-              <Video className="h-5 w-5" />
+              <Video className="w-6 h-6" />
               Join Meeting
             </button>
 
-            <div className="flex items-center gap-3 py-1">
-              <div className="h-px flex-1 bg-white/10" />
-              <span className="text-xs text-slate-500">or</span>
-              <div className="h-px flex-1 bg-white/10" />
+            {/* Divider */}
+            <div className="relative flex items-center py-5">
+              <div className="flex-grow border-t border-slate-700/50"></div>
+              <span className="flex-shrink mx-6 text-sm text-slate-600 font-mono">or</span>
+              <div className="flex-grow border-t border-slate-700/50"></div>
             </div>
 
+            {/* New Meeting Button */}
             <button
-              onClick={handleCreate}
-              disabled={!name.trim()}
-              className="flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-500/30 bg-cyan-500/10 px-4 py-3 font-semibold text-cyan-300 transition hover:bg-cyan-500/20 disabled:cursor-not-allowed disabled:opacity-40"
+              onClick={handleCreateMeeting}
+              className="w-full bg-slate-800 text-slate-100 font-medium rounded-xl px-6 py-4 flex items-center justify-center gap-3 hover:bg-slate-700 border border-slate-700 transition-colors duration-200 text-lg"
             >
-              <Plus className="h-5 w-5" />
-              New Meeting
+              <MonitorPlay className="w-6 h-6 text-sky-400" />
+              Start a New Meeting
             </button>
           </div>
         </div>
+      </main>
 
-        <p className="mt-6 flex items-center gap-1.5 text-xs text-slate-500">
-          <ArrowRight className="h-3 w-3" />
-          Powered by generative 3D &amp; real-time presence
-        </p>
-      </div>
+      <footer className="mt-16 text-center text-slate-600 pt-8 border-t border-slate-800/50">
+        <p>© {new Date().getFullYear()} HoloMeet Inc. All rights reserved.</p>
+        <p className="text-sm mt-1">Experimental Generative Meeting Platform</p>
+      </footer>
     </div>
   );
 }
