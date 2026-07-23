@@ -8,15 +8,20 @@ interface SceneViewportProps {
 
 function DefaultAvatar({ isPresenting }: { isPresenting?: boolean }) {
   return (
-    <Float speed={2} rotationIntensity={0.5} floatIntensity={0.5}>
+    <Float speed={isPresenting ? 5 : 1.5} rotationIntensity={isPresenting ? 1.5 : 0.4} floatIntensity={0.5}>
       <mesh position={[0, 0, 0]}>
         <sphereGeometry args={[1, 32, 32]} />
-        <meshStandardMaterial color={isPresenting ? '#38bdf8' : '#818cf8'} roughness={0.3} metalness={0.8} />
+        <meshStandardMaterial
+          color={isPresenting ? '#06b6d4' : '#3b82f6'}
+          roughness={0.2}
+          metalness={0.9}
+          wireframe={isPresenting} // Efek hologram bersinar saat presentasi aktif
+        />
       </mesh>
       {/* Halo ring */}
       <mesh position={[0, 0, 0]} rotation={[Math.PI / 3, 0, 0]}>
-        <torusGeometry args={[1.4, 0.05, 16, 100]} />
-        <meshBasicMaterial color="#38bdf8" />
+        <torusGeometry args={[1.5, 0.08, 16, 100]} />
+        <meshBasicMaterial color={isPresenting ? '#38bdf8' : '#6366f1'} />
       </mesh>
     </Float>
   );
