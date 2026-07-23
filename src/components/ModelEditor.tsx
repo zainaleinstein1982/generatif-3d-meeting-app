@@ -1,4 +1,4 @@
-import { X, Box, Sparkles, Check, Camera, Mouse } from 'lucide-react';
+import { X, Box, Sparkles, Check, Camera, Mouse, GitFork } from 'lucide-react'; // 1. Tambahkan GitFork
 
 interface ModelEditorProps {
   currentModel: any;
@@ -6,12 +6,13 @@ interface ModelEditorProps {
   onClose: () => void;
 }
 
-// 1. Tambahkan opsi 'mouse' ke daftar preset
+// 2. Tambahkan 'pipeline' ke dalam array MODEL_OPTIONS
 const MODEL_OPTIONS = [
   { id: 'default', name: 'Default Hologram', description: 'Orbital Holographic Sphere' },
   { id: 'cube', name: 'Generative Cube', description: 'Geometric Tech Matrix' },
   { id: 'presenter', name: 'Stage Presenter', description: 'Core Presentation Node' },
   { id: 'mouse', name: 'Mouse 3D Object', description: 'Generative 3D Model Mouse' },
+  { id: 'pipeline', name: 'AI 3D Pipeline Diagram', description: 'Flow Architecture Diagram 3D' }, // Baru
 ];
 
 export default function ModelEditor({ currentModel, onSelectModel, onClose }: ModelEditorProps) {
@@ -20,9 +21,9 @@ export default function ModelEditor({ currentModel, onSelectModel, onClose }: Mo
   const handleCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      alert(`Objek "${file.name}" berhasil ditangkap! Mengubah tampilan ke model Generative 3D...`);
-      // Otomatis ubah tampilan ke model mouse/generatif setelah foto diambil
-      onSelectModel('mouse');
+      alert(`Objek "${file.name}" berhasil ditangkap! Menampilkan Pipeline Diagram AI...`);
+      // 3. Otomatis ubah tampilan ke modul pipeline setelah foto diambil
+      onSelectModel('pipeline');
     }
   };
 
@@ -63,8 +64,11 @@ export default function ModelEditor({ currentModel, onSelectModel, onClose }: Mo
             >
               <div>
                 <div className="flex items-center gap-1.5 font-medium text-xs">
+                  {/* 4. Logika Pemilihan Ikon */}
                   {item.id === 'mouse' ? (
                     <Mouse className={`w-3.5 h-3.5 ${isSelected ? 'text-sky-400' : 'text-slate-400'}`} />
+                  ) : item.id === 'pipeline' ? (
+                    <GitFork className={`w-3.5 h-3.5 ${isSelected ? 'text-sky-400' : 'text-slate-400'}`} />
                   ) : (
                     <Sparkles className={`w-3.5 h-3.5 ${isSelected ? 'text-sky-400' : 'text-slate-400'}`} />
                   )}
@@ -79,7 +83,7 @@ export default function ModelEditor({ currentModel, onSelectModel, onClose }: Mo
         })}
       </div>
 
-      {/* Fitur Tambahan: Scan Objek dari Kamera HP/Laptop */}
+      {/* Fitur Scan Kamera */}
       <div className="pt-3 border-t border-slate-800 space-y-2">
         <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-300">
           <Camera className="w-3.5 h-3.5 text-sky-400" />
