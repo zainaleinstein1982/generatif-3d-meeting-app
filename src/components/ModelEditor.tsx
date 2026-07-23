@@ -1,4 +1,4 @@
-import { X, Box, Sparkles, Check, Image as ImageIcon, Mouse, GitFork } from 'lucide-react';
+import { X, Box, Sparkles, Check, Image as ImageIcon, Camera, Mouse, GitFork } from 'lucide-react';
 
 interface ModelEditorProps {
   currentModel: any;
@@ -17,13 +17,13 @@ const MODEL_OPTIONS = [
 export default function ModelEditor({ currentModel, onSelectModel, onClose }: ModelEditorProps) {
   const activeModelId = typeof currentModel === 'string' ? currentModel : currentModel?.id || 'default';
 
-  const handleImageImport = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  // Handler umum untuk memproses file baik dari Import File maupun Kamera
+  const handleMediaProcess = (file?: File) => {
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
         const imageUrl = event.target?.result as string;
-        // Mengirim objek model berbentuk gambar generatif 3D
+        // Mengirim data gambar ke Mesh Displacement Engine di SceneViewport
         onSelectModel({
           id: 'custom_image',
           type: 'custom_image',
@@ -88,26 +88,44 @@ export default function ModelEditor({ currentModel, onSelectModel, onClose }: Mo
         })}
       </div>
 
-      {/* Fitur Import Gambar JPEG / PNG ke Generative 3D */}
+      {/* Fitur AI Image-to-3D Reconstruction (File & Kamera Berdampingan) */}
       <div className="pt-3 border-t border-slate-800 space-y-2">
         <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-300">
-          <ImageIcon className="w-3.5 h-3.5 text-sky-400" />
-          Import Gambar Bahan (JPEG / PNG)
+          <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+          AI Image-to-3D Reconstruction
         </label>
-        <label className="block w-full text-center py-2 px-3 rounded-xl bg-sky-600/20 border border-sky-500/40 hover:bg-sky-600/30 text-sky-300 text-xs font-medium cursor-pointer transition-all">
-          🖼️ Pilih File Gambar (JPEG/PNG)
-          <input
-            type="file"
-            accept="image/jpeg, image/png, image/webp"
-            onChange={handleImageImport}
-            className="hidden"
-          />
-        </label>
+        
+        <div className="grid grid-cols-2 gap-2">
+          {/* Tombol 1: Pilih File Gambar */}
+          <label className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-sky-600/20 border border-sky-500/40 hover:bg-sky-600/30 text-sky-300 text-[11px] font-medium cursor-pointer transition-all text-center gap-1">
+            <ImageIcon className="w-4 h-4" />
+            <span>Pilih File Gambar</span>
+            <input
+              type="file"
+              accept="image/jpeg, image/png, image/webp"
+              onChange={(e) => handleMediaProcess(e.target.files?.[0])}
+              className="hidden"
+            />
+          </label>
+
+          {/* Tombol 2: Ambil Foto / Video via Kamera */}
+          <label className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-emerald-600/20 border border-emerald-500/40 hover:bg-emerald-600/30 text-emerald-300 text-[11px] font-medium cursor-pointer transition-all text-center gap-1">
+            <Camera className="w-4 h-4" />
+            <span>Kamera / Capture</span>
+            <input
+              type="file"
+              accept="image/*,video/*"
+              capture="environment"
+              onChange={(e) => handleMediaProcess(e.target.files?.[0])}
+              className="hidden"
+            />
+          </label>
+        </div>
       </div>
 
       {/* Footer */}
       <div className="pt-3 text-[10px] text-slate-500 text-center">
-        Perubahan akan langsung tersinkronisasi ke seluruh peserta.
+        Secara dinamis merekonstruksi piksel gambar menjadi Mesh 3D bervolume.
       </div>
     </div>
   );
