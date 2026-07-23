@@ -1,29 +1,37 @@
-import { X, Box, Sparkles, Check, Camera, Mouse, GitFork } from 'lucide-react'; // 1. Tambahkan GitFork
+import { X, Box, Sparkles, Check, Image as ImageIcon, Mouse, GitFork } from 'lucide-react';
 
 interface ModelEditorProps {
   currentModel: any;
-  onSelectModel: (model: string) => void;
+  onSelectModel: (model: any) => void;
   onClose: () => void;
 }
 
-// 2. Tambahkan 'pipeline' ke dalam array MODEL_OPTIONS
 const MODEL_OPTIONS = [
   { id: 'default', name: 'Default Hologram', description: 'Orbital Holographic Sphere' },
   { id: 'cube', name: 'Generative Cube', description: 'Geometric Tech Matrix' },
   { id: 'presenter', name: 'Stage Presenter', description: 'Core Presentation Node' },
   { id: 'mouse', name: 'Mouse 3D Object', description: 'Generative 3D Model Mouse' },
-  { id: 'pipeline', name: 'AI 3D Pipeline Diagram', description: 'Flow Architecture Diagram 3D' }, // Baru
+  { id: 'pipeline', name: 'AI 3D Pipeline Diagram', description: 'Flow Architecture Diagram 3D' },
 ];
 
 export default function ModelEditor({ currentModel, onSelectModel, onClose }: ModelEditorProps) {
   const activeModelId = typeof currentModel === 'string' ? currentModel : currentModel?.id || 'default';
 
-  const handleCameraCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      alert(`Objek "${file.name}" berhasil ditangkap! Menampilkan Pipeline Diagram AI...`);
-      // 3. Otomatis ubah tampilan ke modul pipeline setelah foto diambil
-      onSelectModel('pipeline');
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const imageUrl = event.target?.result as string;
+        // Mengirim objek model berbentuk gambar generatif 3D
+        onSelectModel({
+          id: 'custom_image',
+          type: 'custom_image',
+          imageUrl: imageUrl,
+          name: file.name,
+        });
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -53,9 +61,7 @@ export default function ModelEditor({ currentModel, onSelectModel, onClose }: Mo
           return (
             <button
               key={item.id}
-              onClick={() => {
-                onSelectModel(item.id);
-              }}
+              onClick={() => onSelectModel(item.id)}
               className={`w-full text-left p-3 rounded-xl border transition-all flex items-start justify-between ${
                 isSelected
                   ? 'bg-sky-600/20 border-sky-500/50 text-sky-200 shadow-md'
@@ -64,7 +70,6 @@ export default function ModelEditor({ currentModel, onSelectModel, onClose }: Mo
             >
               <div>
                 <div className="flex items-center gap-1.5 font-medium text-xs">
-                  {/* 4. Logika Pemilihan Ikon */}
                   {item.id === 'mouse' ? (
                     <Mouse className={`w-3.5 h-3.5 ${isSelected ? 'text-sky-400' : 'text-slate-400'}`} />
                   ) : item.id === 'pipeline' ? (
@@ -83,19 +88,18 @@ export default function ModelEditor({ currentModel, onSelectModel, onClose }: Mo
         })}
       </div>
 
-      {/* Fitur Scan Kamera */}
+      {/* Fitur Import Gambar JPEG / PNG ke Generative 3D */}
       <div className="pt-3 border-t border-slate-800 space-y-2">
         <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-300">
-          <Camera className="w-3.5 h-3.5 text-sky-400" />
-          Scan Objek Fisik (Mouse / Benda)
+          <ImageIcon className="w-3.5 h-3.5 text-sky-400" />
+          Import Gambar Bahan (JPEG / PNG)
         </label>
         <label className="block w-full text-center py-2 px-3 rounded-xl bg-sky-600/20 border border-sky-500/40 hover:bg-sky-600/30 text-sky-300 text-xs font-medium cursor-pointer transition-all">
-          📷 Ambil Foto via Kamera
+          🖼️ Pilih File Gambar (JPEG/PNG)
           <input
             type="file"
-            accept="image/*"
-            capture="environment"
-            onChange={handleCameraCapture}
+            accept="image/jpeg, image/png, image/webp"
+            onChange={handleImageImport}
             className="hidden"
           />
         </label>
