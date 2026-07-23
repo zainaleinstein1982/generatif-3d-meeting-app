@@ -1,7 +1,6 @@
 import { useState } from 'react';
-// Tambahkan baris ini di bawah import yang sudah ada
-import profilePic from '@/assets/zainal-profile.jpg'; // Sesuaikan dengan lokasi dan nama file gambar Anda
-import { ArrowRight, Video, MonitorPlay } from 'lucide-react';
+// Tambahkan Sparkles di sini
+import { Sparkles, ArrowRight, Video, MonitorPlay } from 'lucide-react';
 
 type Props = {
   onJoin: (name: string, meetingId?: string) => void;
