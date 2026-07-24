@@ -8,7 +8,7 @@ interface SceneViewportProps {
   isPresenting?: boolean;
 }
 
-// 1. Model Default
+// 1. Model Default (Orbital Hologram)
 function DefaultAvatar({ isPresenting }: { isPresenting?: boolean }) {
   return (
     <Float speed={isPresenting ? 5 : 1.5} rotationIntensity={isPresenting ? 1.5 : 0.4} floatIntensity={0.5}>
@@ -46,7 +46,7 @@ function CubeAvatar({ isPresenting }: { isPresenting?: boolean }) {
   );
 }
 
-// 3. Model Mouse 3D Preset
+// 3. Model Mouse 3D
 function MouseAvatar({ isPresenting }: { isPresenting?: boolean }) {
   return (
     <Float speed={isPresenting ? 4 : 2} rotationIntensity={0.6} floatIntensity={0.4}>
@@ -69,7 +69,7 @@ function MouseAvatar({ isPresenting }: { isPresenting?: boolean }) {
   );
 }
 
-// 4. Modul 3D Pipeline Diagram
+// 4. Modul AI 3D Pipeline Diagram
 function PipelineDiagramAvatar() {
   return (
     <Float speed={1.5} rotationIntensity={0.2} floatIntensity={0.3}>
@@ -118,7 +118,7 @@ function PipelineDiagramAvatar() {
   );
 }
 
-// 5. MESH GENERATIVE 3D BERVOLUME (Standard Flat Image)
+// 5. Mesh Generative dari Gambar Flat
 function GenerativeMeshFromImage({ imageUrl }: { imageUrl: string }) {
   const texture = useTexture(imageUrl);
 
@@ -140,74 +140,54 @@ function GenerativeMeshFromImage({ imageUrl }: { imageUrl: string }) {
           <boxGeometry args={[2.85, 2.25, 0.2]} />
           <meshStandardMaterial color="#0f172a" roughness={0.8} metalness={0.8} />
         </mesh>
-        <Text position={[0, -1.4, 0]} fontSize={0.2} color="#38bdf8" anchorX="center" anchorY="middle">
-          ✨ Reconstructed Generative 3D Mesh
-        </Text>
       </group>
     </Float>
   );
 }
 
-// 6. PERBAIKAN KHUSUS: REKONSTRUKSI BOTOL / TEMPAT MINUMAN PROSEDURAL (img2threejs Engine)
+// 6. REKONSTRUKSI OBJEK 3D BERSIH (Tanpa Garis Wireframe & Tanpa Cincin Pembatas)
 function Img2ThreeJSProceduralModel({ imageUrl }: { imageUrl: string }) {
   const texture = useTexture(imageUrl);
   const modelGroupRef = useRef<THREE.Group>(null!);
-  const ringRef = useRef<THREE.Mesh>(null!);
 
-  // Perbaikan orientasi tekstur agar tegak lurus pada botol
+  // Mirror tekstur secara horizontal agar hasil tangkapan kamera tidak terbalik
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.repeat.x = -1;
   texture.center.set(0.5, 0.5);
 
   useFrame((_, delta) => {
     if (modelGroupRef.current) {
-      modelGroupRef.current.rotation.y += delta * 0.5; // Putar botol secara 360 derajat
-    }
-    if (ringRef.current) {
-      ringRef.current.rotation.z -= delta * 0.8;
+      modelGroupRef.current.rotation.y += delta * 0.4; // Rotasi halus 360 derajat
     }
   });
 
   return (
-    <Float speed={2} rotationIntensity={0.2} floatIntensity={0.4}>
+    <Float speed={1.5} rotationIntensity={0.1} floatIntensity={0.3}>
       <group ref={modelGroupRef} position={[0, -0.2, 0]}>
         
-        {/* Layer 1: Badan Utama Botol Minuman (Cylinder dengan Tekstur Tangkapan Kamera) */}
+        {/* Badan Utama Tempat Minuman / Botol (3D Solid Cylinder) */}
         <mesh position={[0, 0, 0]}>
-          <cylinderGeometry args={[0.7, 0.75, 2.2, 32]} />
+          <cylinderGeometry args={[0.7, 0.75, 2.2, 64]} />
           <meshStandardMaterial
             map={texture}
-            roughness={0.2}
-            metalness={0.3}
+            roughness={0.25}
+            metalness={0.2}
+            wireframe={false} // Memastikan tidak ada garis jaring
           />
         </mesh>
 
-        {/* Layer 2: Leher Botol (Procedural Neck) */}
+        {/* Leher Tempat Minuman */}
         <mesh position={[0, 1.25, 0]}>
           <cylinderGeometry args={[0.35, 0.65, 0.3, 32]} />
-          <meshStandardMaterial color="#0284c7" roughness={0.1} metalness={0.8} />
+          <meshStandardMaterial color="#0284c7" roughness={0.2} metalness={0.7} />
         </mesh>
 
-        {/* Layer 3: Tutup Botol Minuman (Procedural Cap) */}
+        {/* Tutup Tempat Minuman */}
         <mesh position={[0, 1.5, 0]}>
           <cylinderGeometry args={[0.38, 0.38, 0.25, 32]} />
-          <meshStandardMaterial color="#0284c7" roughness={0.3} metalness={0.6} />
+          <meshStandardMaterial color="#0369a1" roughness={0.3} metalness={0.6} />
         </mesh>
 
-        {/* Layer 4: Energy Hologram Ring (img2threejs Indicator) */}
-        <mesh ref={ringRef} position={[0, 0, 0]}>
-          <torusGeometry args={[1.1, 0.03, 16, 100]} />
-          <meshStandardMaterial color="#10b981" emissive="#059669" emissiveIntensity={0.8} />
-        </mesh>
-
-        {/* Layer 5: Bounding Wireframe Grid Botol */}
-        <mesh position={[0, 0.15, 0]}>
-          <cylinderGeometry args={[0.8, 0.85, 2.9, 16]} />
-          <meshStandardMaterial color="#34d399" wireframe />
-        </mesh>
-
-        {/* Label Indikator 3D */}
-        <Text position={[0, -1.5, 0]} fontSize={0.18} color="#10b981" anchorX="center" anchorY="middle">
-          ⚡ img2threejs Procedural Bottle Model Reconstructed
-        </Text>
       </group>
     </Float>
   );
