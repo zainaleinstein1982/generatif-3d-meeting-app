@@ -103,57 +103,44 @@ function PipelineDiagramAvatar() {
   );
 }
 
-// 5. REKONSTRUKSI MODEL 3D DENGAN PROJEKSI GAMBAR REALISTIS (GAYA IMG2THREEJS)
+// 5. REKONSTRUKSI EXACT IMG2THREEJS (PROPORTIONAL 3D PLANE RECONSTRUCTION)
 function Img2ThreeJSBottleModel({ imageUrl }: { imageUrl: string }) {
   const modelGroupRef = useRef<THREE.Group>(null!);
-  const [croppedTexture, setCroppedTexture] = useState<THREE.CanvasTexture | null>(null);
+  const [texture, setTexture] = useState<THREE.Texture | null>(null);
+  const [aspect, setAspect] = useState<number>(1);
 
-  // Proses Pemotongan Latar Belakang & Ekstraksi Objek Botol dari Foto
   useEffect(() => {
-    const img = new Image();
-    img.crossOrigin = 'Anonymous';
-    img.src = imageUrl;
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-
-      canvas.width = 512;
-      canvas.height = 1024;
-
-      // Crop fokus hanya pada objek botol di tengah gambar
-      const cropWidth = img.width * 0.55;
-      const cropHeight = img.height * 0.85;
-      const cropX = (img.width - cropWidth) / 2;
-      const cropY = (img.height - cropHeight) / 2;
-
-      // Buat pemotongan bentuk botol dengan efek Soft Vignette
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, cropX, cropY, cropWidth, cropHeight, 0, 0, canvas.width, canvas.height);
-
-      const tex = new THREE.CanvasTexture(canvas);
+    const loader = new THREE.TextureLoader();
+    loader.load(imageUrl, (tex) => {
       tex.colorSpace = THREE.SRGBColorSpace;
-      setCroppedTexture(tex);
-    };
+      const img = tex.image;
+      if (img && img.width && img.height) {
+        setAspect(img.width / img.height);
+      }
+      setTexture(tex);
+    });
   }, [imageUrl]);
 
   useFrame((_, delta) => {
     if (modelGroupRef.current) {
-      modelGroupRef.current.rotation.y += delta * 0.35; // Rotasi melingkar panggung 3D
+      // Rotasi mengayun halus khas panggung visualizer 3D
+      modelGroupRef.current.rotation.y = Math.sin(Date.now() * 0.001) * 0.2;
     }
   });
 
+  const planeHeight = 2.2;
+  const planeWidth = planeHeight * aspect;
+
   return (
-    <group position={[0, -0.4, 0]}>
-      {/* Objek Utama Botol */}
+    <group position={[0, -0.2, 0]}>
       <group ref={modelGroupRef} position={[0, 0.6, 0]}>
 
-        {/* Muka Depan Botol: Menampilkan Gambar Asli Botol Hasil Foto */}
-        {croppedTexture && (
-          <mesh position={[0, 0, 0.05]}>
-            <cylinderGeometry args={[0.55, 0.55, 1.8, 64, 1, false, -Math.PI / 2.5, Math.PI / 1.25]} />
+        {/* Panel 3D Utama: Menampilkan Foto Utuh Presisi Sesuai Rasio Asli */}
+        {texture && (
+          <mesh position={[0, 0, 0]}>
+            <planeGeometry args={[planeWidth, planeHeight]} />
             <meshStandardMaterial
-              map={croppedTexture}
+              map={texture}
               roughness={0.2}
               metalness={0.1}
               transparent={true}
@@ -162,41 +149,21 @@ function Img2ThreeJSBottleModel({ imageUrl }: { imageUrl: string }) {
           </mesh>
         )}
 
-        {/* Badan Belakang & Samping: Bodi Kaca Transparan Glossy (Cyan Glass Look) */}
-        <mesh position={[0, 0, 0]}>
-          <cylinderGeometry args={[0.54, 0.54, 1.8, 64]} />
-          <meshPhysicalMaterial
-            color="#0284c7"
-            transparent={true}
-            opacity={0.7}
-            roughness={0.1}
-            metalness={0.2}
-            transmission={0.5}
-            thickness={0.3}
-          />
+        {/* Backplate / Bayangan Kedalaman 3D Cyan Frame */}
+        <mesh position={[0, 0, -0.05]}>
+          <planeGeometry args={[planeWidth + 0.1, planeHeight + 0.1]} />
+          <meshBasicMaterial color="#0284c7" transparent opacity={0.3} />
         </mesh>
 
-        {/* Leher & Bahu Botol Slanted Metalik */}
-        <mesh position={[0, 1.05, 0]}>
-          <cylinderGeometry args={[0.28, 0.54, 0.3, 32]} />
-          <meshStandardMaterial color="#f1f5f9" roughness={0.1} metalness={0.8} />
-        </mesh>
-
-        {/* Tutup Botol Glossy */}
-        <mesh position={[0, 1.28, 0]}>
-          <cylinderGeometry args={[0.28, 0.28, 0.18, 32]} />
-          <meshStandardMaterial color="#38bdf8" roughness={0.2} metalness={0.7} />
-        </mesh>
-
-        {/* Ring Glow Aksen img2threejs di Tengah Botol */}
-        <mesh position={[0, 0.0, 0]}>
-          <torusGeometry args={[0.56, 0.02, 16, 64]} />
-          <meshBasicMaterial color="#38bdf8" />
+        {/* Halo / Glow Ring di Belakang Objek */}
+        <mesh position={[0, 0, -0.08]}>
+          <ringGeometry args={[1.0, 1.3, 64]} />
+          <meshBasicMaterial color="#38bdf8" transparent opacity={0.4} side={THREE.DoubleSide} />
         </mesh>
       </group>
 
-      {/* Podium Ground Studio (Dark Stage + Ring Glow) */}
-      <group position={[0, -0.3, 0]}>
+      {/* Podium Ground Studio (Gaya img2threejs) */}
+      <group position={[0, -0.6, 0]}>
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
           <ringGeometry args={[1.2, 1.25, 64]} />
           <meshBasicMaterial color="#38bdf8" side={THREE.DoubleSide} />
@@ -208,7 +175,7 @@ function Img2ThreeJSBottleModel({ imageUrl }: { imageUrl: string }) {
         </mesh>
       </group>
 
-      {/* Garis Penunjuk Hubungan Foto ke Model 3D */}
+      {/* Garis Penunjuk Cyan (Dashed Line) */}
       <Line
         points={[[-2.0, 1.8, 0], [-0.8, 1.2, 0], [0, 0.8, 0]]}
         color="#38bdf8"
@@ -269,12 +236,11 @@ export default function SceneViewport({ presenterModel, isPresenting = false }: 
         </div>
       )}
 
-      <Canvas camera={{ position: [0, 1.5, 4.5], fov: 45 }}>
+      <Canvas camera={{ position: [0, 1.2, 4.2], fov: 45 }}>
         {/* Studio Lighting */}
-        <ambientLight intensity={0.8} />
-        <directionalLight position={[5, 8, 5]} intensity={1.8} color="#ffffff" />
+        <ambientLight intensity={1.2} />
+        <directionalLight position={[5, 8, 5]} intensity={1.5} color="#ffffff" />
         <pointLight position={[-4, 2, -2]} intensity={1.5} color="#0284c7" />
-        <spotLight position={[0, 8, 0]} intensity={2} angle={0.5} penumbra={0.8} color="#38bdf8" />
 
         <Stars radius={80} depth={50} count={2000} factor={3} saturation={0} fade speed={1} />
 
