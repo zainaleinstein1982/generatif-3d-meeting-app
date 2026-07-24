@@ -1,6 +1,6 @@
 import { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Stars, Float, Text, useTexture } from '@react-three/drei';
+import { OrbitControls, Stars, Float, Text, Line } from '@react-three/drei';
 import * as THREE from 'three';
 
 interface SceneViewportProps {
@@ -115,98 +115,105 @@ function PipelineDiagramAvatar() {
   );
 }
 
-// 5. Mesh Generative dari Gambar Flat
-function GenerativeMeshFromImage({ imageUrl }: { imageUrl: string }) {
-  const texture = useTexture(imageUrl);
-
-  return (
-    <Float speed={2} rotationIntensity={0.8} floatIntensity={0.4}>
-      <group position={[0, 0, 0]}>
-        <mesh position={[0, 0, 0]}>
-          <planeGeometry args={[2.8, 2.2, 128, 128]} />
-          <meshStandardMaterial
-            map={texture}
-            displacementMap={texture}
-            displacementScale={0.6}
-            roughness={0.3}
-            metalness={0.4}
-            side={THREE.DoubleSide}
-          />
-        </mesh>
-        <mesh position={[0, 0, -0.3]}>
-          <boxGeometry args={[2.85, 2.25, 0.2]} />
-          <meshStandardMaterial color="#0f172a" roughness={0.8} metalness={0.8} />
-        </mesh>
-      </group>
-    </Float>
-  );
-}
-
-// 6. MODEL REKONSTRUKSI 3D REALISTIS (Warna Murni & Teks Terbaca)
-function Img2ThreeJSProceduralModel({ imageUrl }: { imageUrl: string }) {
-  const texture = useTexture(imageUrl);
+// 5. REKONSTRUKSI MODEL 3D PROCEDURAL (GAYA EXACT IMG2THREEJS)
+function Img2ThreeJSBottleModel() {
   const modelGroupRef = useRef<THREE.Group>(null!);
-
-  // Konfigurasi warna asli & perbaikan teks terbalik
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.wrapS = THREE.RepeatWrapping;
-  texture.repeat.x = 1; // Memastikan orientasi teks benar
-  texture.center.set(0.5, 0.5);
 
   useFrame((_, delta) => {
     if (modelGroupRef.current) {
-      modelGroupRef.current.rotation.y += delta * 0.3; // Rotasi melingkar halus
+      modelGroupRef.current.rotation.y += delta * 0.4; // Rotasi panggung 3D
     }
   });
 
   return (
-    <group position={[0, -0.6, 0]}>
-      {/* Objek Utama yang Berputar */}
-      <group ref={modelGroupRef} position={[0, 0.9, 0]}>
+    <group position={[0, -0.4, 0]}>
+      {/* Objek Utama Botol / Produk Prosedural */}
+      <group ref={modelGroupRef} position={[0, 0.6, 0]}>
         
-        {/* Badan Utama Botol (Menggunakan Warna Asli Foto) */}
-        <mesh position={[0, 0, 0]}>
-          <cylinderGeometry args={[0.65, 0.65, 2.0, 64]} />
+        {/* Cairan / Bodi Dalam Berpendar (Isotonic Blue Glow) */}
+        <mesh position={[0, -0.1, 0]}>
+          <cylinderGeometry args={[0.52, 0.52, 1.4, 32]} />
           <meshStandardMaterial
-            map={texture}
-            roughness={0.3}
-            metalness={0.05}
+            color="#0284c7"
+            emissive="#0369a1"
+            emissiveIntensity={0.6}
+            roughness={0.1}
+            metalness={0.3}
           />
         </mesh>
 
-        {/* Bahu / Leher Botol */}
-        <mesh position={[0, 1.15, 0]}>
-          <cylinderGeometry args={[0.3, 0.65, 0.3, 32]} />
-          <meshStandardMaterial color="#e2e8f0" roughness={0.2} metalness={0.1} />
+        {/* Label / Kemasan Luar Transparan dengan Aksen Cyan */}
+        <mesh position={[0, -0.1, 0]}>
+          <cylinderGeometry args={[0.56, 0.56, 1.45, 32]} />
+          <meshPhysicalMaterial
+            color="#38bdf8"
+            transparent={true}
+            opacity={0.4}
+            roughness={0.1}
+            transmission={0.6}
+            thickness={0.2}
+          />
         </mesh>
 
-        {/* Tutup Botol */}
-        <mesh position={[0, 1.35, 0]}>
-          <cylinderGeometry args={[0.32, 0.32, 0.15, 32]} />
-          <meshStandardMaterial color="#1e293b" roughness={0.4} metalness={0.2} />
+        {/* Bahu Botol Slanted */}
+        <mesh position={[0, 0.8, 0]}>
+          <cylinderGeometry args={[0.28, 0.55, 0.4, 32]} />
+          <meshStandardMaterial
+            color="#f8fafc"
+            roughness={0.2}
+            metalness={0.8}
+            emissive="#38bdf8"
+            emissiveIntensity={0.2}
+          />
+        </mesh>
+
+        {/* Leher & Tutup Botol Metallic Bright */}
+        <mesh position={[0, 1.1, 0]}>
+          <cylinderGeometry args={[0.26, 0.26, 0.25, 32]} />
+          <meshStandardMaterial
+            color="#38bdf8"
+            roughness={0.1}
+            metalness={0.9}
+            emissive="#0ea5e9"
+            emissiveIntensity={0.4}
+          />
+        </mesh>
+
+        {/* Aksen Ring Glow Emas/Cyan di Tengah (Khas img2threejs) */}
+        <mesh position={[0, 0.1, 0]}>
+          <torusGeometry args={[0.58, 0.03, 16, 64]} />
+          <meshBasicMaterial color="#38bdf8" />
         </mesh>
       </group>
 
-      {/* Podium / Base Panggung Neutral Modern */}
-      <group position={[0, -0.1, 0]}>
-        {/* Garis Aksen Panggung */}
+      {/* Podium Ground Studio (Soft Dark Stage + Ring Glow) */}
+      <group position={[0, -0.2, 0]}>
+        {/* Glow Ring Dasar Panggung */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-          <ringGeometry args={[1.3, 1.35, 64]} />
+          <ringGeometry args={[1.2, 1.25, 64]} />
           <meshBasicMaterial color="#38bdf8" side={THREE.DoubleSide} />
         </mesh>
 
-        {/* Alas Panggung */}
+        {/* Stage Alas Gelap */}
         <mesh position={[0, -0.1, 0]}>
-          <cylinderGeometry args={[1.6, 1.7, 0.2, 64]} />
-          <meshStandardMaterial color="#0f172a" roughness={0.4} metalness={0.6} />
+          <cylinderGeometry args={[1.5, 1.6, 0.2, 64]} />
+          <meshStandardMaterial color="#020617" roughness={0.3} metalness={0.8} />
         </mesh>
       </group>
+
+      {/* Garis Penunjuk Hubungan Foto ke Model 3D (3D Pointer Line) */}
+      <Line
+        points={[[-2.0, 1.8, 0], [-0.8, 1.2, 0], [0, 0.8, 0]]}
+        color="#38bdf8"
+        lineWidth={2}
+        dashed={true}
+        dashScale={10}
+      />
     </group>
   );
 }
 
 export default function SceneViewport({ presenterModel, isPresenting = false }: SceneViewportProps) {
-  const isCustomImage = typeof presenterModel === 'object' && presenterModel?.type === 'custom_image';
   const isImg2ThreeJS = typeof presenterModel === 'object' && presenterModel?.type === 'img2threejs_procedural';
 
   const modelType = typeof presenterModel === 'string'
@@ -214,12 +221,8 @@ export default function SceneViewport({ presenterModel, isPresenting = false }: 
     : presenterModel?.id || presenterModel?.type || 'default';
 
   const renderModel = () => {
-    if (isImg2ThreeJS && presenterModel?.imageUrl) {
-      return <Img2ThreeJSProceduralModel imageUrl={presenterModel.imageUrl} />;
-    }
-
-    if (isCustomImage && presenterModel?.imageUrl) {
-      return <GenerativeMeshFromImage imageUrl={presenterModel.imageUrl} />;
+    if (isImg2ThreeJS) {
+      return <Img2ThreeJSBottleModel />;
     }
 
     switch (modelType) {
@@ -238,23 +241,33 @@ export default function SceneViewport({ presenterModel, isPresenting = false }: 
 
   return (
     <div className="w-full h-full relative overflow-hidden bg-slate-950">
-      {/* Inset Photo Reference */}
+      {/* Inset Photo Reference (Sesuai Gaya UI img2threejs) */}
       {isImg2ThreeJS && presenterModel?.imageUrl && (
-        <div className="absolute top-4 left-4 z-10 bg-slate-900/80 backdrop-blur-md p-2 rounded-xl border border-sky-500/30 shadow-2xl flex flex-col items-center">
+        <div className="absolute top-6 left-6 z-10 bg-slate-900/90 backdrop-blur-md p-2 rounded-xl border border-sky-500/40 shadow-2xl flex flex-col items-center">
           <div className="w-24 h-24 rounded-lg overflow-hidden border border-slate-700 bg-black">
             <img src={presenterModel.imageUrl} alt="Source Reference" className="w-full h-full object-cover" />
           </div>
-          <span className="text-[10px] text-sky-400 font-mono mt-1.5 font-semibold tracking-wider uppercase">
+          <span className="text-[9px] text-sky-400 font-mono mt-1.5 font-bold tracking-widest uppercase">
             SOURCE PHOTO
           </span>
         </div>
       )}
 
+      {/* Tag "RESULT IN CODE" di Pojok Kanan Atas Viewport */}
+      {isImg2ThreeJS && (
+        <div className="absolute top-6 right-6 z-10">
+          <span className="text-[10px] text-slate-400 font-mono tracking-widest uppercase bg-slate-900/80 border border-slate-800 px-3 py-1.5 rounded-md">
+            RESULT IN CODE
+          </span>
+        </div>
+      )}
+
       <Canvas camera={{ position: [0, 1.5, 4.5], fov: 45 }}>
-        {/* Lighting Netral Menjaga Warna Asli Objek */}
-        <ambientLight intensity={1.5} />
-        <directionalLight position={[5, 8, 5]} intensity={1.2} />
-        <directionalLight position={[-5, 5, -5]} intensity={0.6} />
+        {/* Studio Lighting Futuristik (Chroma / Metallic Look) */}
+        <ambientLight intensity={0.5} />
+        <directionalLight position={[5, 8, 5]} intensity={1.8} color="#ffffff" />
+        <pointLight position={[-4, 2, -2]} intensity={2} color="#0284c7" />
+        <spotLight position={[0, 8, 0]} intensity={2.5} angle={0.5} penumbra={0.8} color="#38bdf8" />
 
         <Stars radius={80} depth={50} count={2000} factor={3} saturation={0} fade speed={1} />
 
