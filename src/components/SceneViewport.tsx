@@ -142,76 +142,63 @@ function GenerativeMeshFromImage({ imageUrl }: { imageUrl: string }) {
   );
 }
 
-// 6. MODEL 3D BERGAYA IMG2THREEJS (Lengkap dengan Podia/Pedestal, Glow, & Studio Lighting)
+// 6. MODEL REKONSTRUKSI 3D REALISTIS (Warna Murni & Teks Terbaca)
 function Img2ThreeJSProceduralModel({ imageUrl }: { imageUrl: string }) {
   const texture = useTexture(imageUrl);
   const modelGroupRef = useRef<THREE.Group>(null!);
 
-  // Mirror tekstur secara horizontal agar posisi tidak terbalik
+  // Konfigurasi warna asli & perbaikan teks terbalik
+  texture.colorSpace = THREE.SRGBColorSpace;
   texture.wrapS = THREE.RepeatWrapping;
-  texture.repeat.x = -1;
+  texture.repeat.x = 1; // Memastikan orientasi teks benar
   texture.center.set(0.5, 0.5);
 
   useFrame((_, delta) => {
     if (modelGroupRef.current) {
-      modelGroupRef.current.rotation.y += delta * 0.3; // Rotasi panggung 360 derajat
+      modelGroupRef.current.rotation.y += delta * 0.3; // Rotasi melingkar halus
     }
   });
 
   return (
     <group position={[0, -0.6, 0]}>
       {/* Objek Utama yang Berputar */}
-      <group ref={modelGroupRef} position={[0, 0.8, 0]}>
+      <group ref={modelGroupRef} position={[0, 0.9, 0]}>
         
-        {/* Badan Utama Objek dengan Aksen Emas & Tekstur */}
+        {/* Badan Utama Botol (Menggunakan Warna Asli Foto) */}
         <mesh position={[0, 0, 0]}>
-          <cylinderGeometry args={[0.75, 0.8, 1.8, 64]} />
+          <cylinderGeometry args={[0.65, 0.65, 2.0, 64]} />
           <meshStandardMaterial
             map={texture}
-            roughness={0.15}
-            metalness={0.85}
-            emissive="#d97706"
-            emissiveIntensity={0.15}
+            roughness={0.3}
+            metalness={0.05}
           />
         </mesh>
 
-        {/* Aksesori Atas Bergaya Metallic Emas */}
-        <mesh position={[0, 1.05, 0]}>
-          <cylinderGeometry args={[0.5, 0.72, 0.3, 32]} />
-          <meshStandardMaterial color="#fbbf24" roughness={0.1} metalness={0.9} />
+        {/* Bahu / Leher Botol */}
+        <mesh position={[0, 1.15, 0]}>
+          <cylinderGeometry args={[0.3, 0.65, 0.3, 32]} />
+          <meshStandardMaterial color="#e2e8f0" roughness={0.2} metalness={0.1} />
         </mesh>
 
-        {/* Penutup Emas Berpendar (Glow Cap) */}
-        <mesh position={[0, 1.3, 0]}>
-          <cylinderGeometry args={[0.52, 0.52, 0.2, 32]} />
-          <meshStandardMaterial
-            color="#f59e0b"
-            roughness={0.05}
-            metalness={0.95}
-            emissive="#f59e0b"
-            emissiveIntensity={0.3}
-          />
+        {/* Tutup Botol */}
+        <mesh position={[0, 1.35, 0]}>
+          <cylinderGeometry args={[0.32, 0.32, 0.15, 32]} />
+          <meshStandardMaterial color="#1e293b" roughness={0.4} metalness={0.2} />
         </mesh>
       </group>
 
-      {/* Podium / Pedestal Panggung (Gaya Img2threejs) */}
+      {/* Podium / Base Panggung Neutral Modern */}
       <group position={[0, -0.1, 0]}>
-        {/* Base Ring Luar Glowing */}
+        {/* Garis Aksen Panggung */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
-          <ringGeometry args={[1.5, 1.6, 64]} />
-          <meshBasicMaterial color="#fbbf24" side={THREE.DoubleSide} />
+          <ringGeometry args={[1.3, 1.35, 64]} />
+          <meshBasicMaterial color="#38bdf8" side={THREE.DoubleSide} />
         </mesh>
 
-        {/* Base Ring Dalam Glowing */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
-          <ringGeometry args={[1.1, 1.18, 64]} />
-          <meshBasicMaterial color="#f59e0b" side={THREE.DoubleSide} />
-        </mesh>
-
-        {/* Alas Panggung Reflektif Dark Metallic */}
+        {/* Alas Panggung */}
         <mesh position={[0, -0.1, 0]}>
-          <cylinderGeometry args={[1.8, 1.9, 0.2, 64]} />
-          <meshStandardMaterial color="#090d16" roughness={0.1} metalness={0.9} />
+          <cylinderGeometry args={[1.6, 1.7, 0.2, 64]} />
+          <meshStandardMaterial color="#0f172a" roughness={0.4} metalness={0.6} />
         </mesh>
       </group>
     </group>
@@ -251,24 +238,23 @@ export default function SceneViewport({ presenterModel, isPresenting = false }: 
 
   return (
     <div className="w-full h-full relative overflow-hidden bg-slate-950">
-      {/* Inset Reference Photo (Gaya img2threejs di pojok kiri atas) */}
+      {/* Inset Photo Reference */}
       {isImg2ThreeJS && presenterModel?.imageUrl && (
-        <div className="absolute top-4 left-4 z-10 bg-slate-900/80 backdrop-blur-md p-2 rounded-xl border border-amber-500/30 shadow-2xl flex flex-col items-center">
+        <div className="absolute top-4 left-4 z-10 bg-slate-900/80 backdrop-blur-md p-2 rounded-xl border border-sky-500/30 shadow-2xl flex flex-col items-center">
           <div className="w-24 h-24 rounded-lg overflow-hidden border border-slate-700 bg-black">
             <img src={presenterModel.imageUrl} alt="Source Reference" className="w-full h-full object-cover" />
           </div>
-          <span className="text-[10px] text-amber-400 font-mono mt-1.5 font-semibold tracking-wider uppercase">
+          <span className="text-[10px] text-sky-400 font-mono mt-1.5 font-semibold tracking-wider uppercase">
             SOURCE PHOTO
           </span>
         </div>
       )}
 
-      <Canvas camera={{ position: [0, 1.8, 4.5], fov: 45 }}>
-        {/* Pencahayaan Studio Mewah */}
-        <ambientLight intensity={0.6} />
-        <directionalLight position={[5, 8, 5]} intensity={2.2} color="#fff7ed" />
-        <pointLight position={[-5, 3, -3]} intensity={1.5} color="#d97706" />
-        <spotLight position={[0, 10, 0]} intensity={2} angle={0.6} penumbra={0.8} color="#fbbf24" />
+      <Canvas camera={{ position: [0, 1.5, 4.5], fov: 45 }}>
+        {/* Lighting Netral Menjaga Warna Asli Objek */}
+        <ambientLight intensity={1.5} />
+        <directionalLight position={[5, 8, 5]} intensity={1.2} />
+        <directionalLight position={[-5, 5, -5]} intensity={0.6} />
 
         <Stars radius={80} depth={50} count={2000} factor={3} saturation={0} fade speed={1} />
 
