@@ -79,7 +79,6 @@ function PipelineDiagramAvatar() {
             <boxGeometry args={[0.9, 0.9, 0.9]} />
             <meshStandardMaterial color="#38bdf8" wireframe />
           </mesh>
-
           <Text position={[0, 0.7, 0]} fontSize={0.22} color="#38bdf8" anchorX="center" anchorY="middle">
             1. Camera Input
           </Text>
@@ -119,7 +118,7 @@ function PipelineDiagramAvatar() {
   );
 }
 
-// 5. MESH GENERATIVE 3D BERVOLUME (Modus Standard: Displacement Map)
+// 5. MESH GENERATIVE 3D BERVOLUME (Standard Flat Image)
 function GenerativeMeshFromImage({ imageUrl }: { imageUrl: string }) {
   const texture = useTexture(imageUrl);
 
@@ -137,12 +136,10 @@ function GenerativeMeshFromImage({ imageUrl }: { imageUrl: string }) {
             side={THREE.DoubleSide}
           />
         </mesh>
-
         <mesh position={[0, 0, -0.3]}>
           <boxGeometry args={[2.85, 2.25, 0.2]} />
           <meshStandardMaterial color="#0f172a" roughness={0.8} metalness={0.8} />
         </mesh>
-
         <Text position={[0, -1.4, 0]} fontSize={0.2} color="#38bdf8" anchorX="center" anchorY="middle">
           ✨ Reconstructed Generative 3D Mesh
         </Text>
@@ -151,57 +148,65 @@ function GenerativeMeshFromImage({ imageUrl }: { imageUrl: string }) {
   );
 }
 
-// 6. BARU: PROCEDURAL CODE-ONLY 3D MODEL RECONSTRUCTION (Sesuai Konsep hoainho/img2threejs)
+// 6. PERBAIKAN KHUSUS: REKONSTRUKSI BOTOL / TEMPAT MINUMAN PROSEDURAL (img2threejs Engine)
 function Img2ThreeJSProceduralModel({ imageUrl }: { imageUrl: string }) {
   const texture = useTexture(imageUrl);
   const modelGroupRef = useRef<THREE.Group>(null!);
   const ringRef = useRef<THREE.Mesh>(null!);
 
-  // Animasi rotasi & orbit prosedural yang dinamis (Animation-Ready)
+  // Perbaikan orientasi tekstur agar tegak lurus pada botol
+  texture.center.set(0.5, 0.5);
+
   useFrame((_, delta) => {
     if (modelGroupRef.current) {
-      modelGroupRef.current.rotation.y += delta * 0.4;
+      modelGroupRef.current.rotation.y += delta * 0.5; // Putar botol secara 360 derajat
     }
     if (ringRef.current) {
-      ringRef.current.rotation.z -= delta * 0.7;
+      ringRef.current.rotation.z -= delta * 0.8;
     }
   });
 
   return (
-    <Float speed={2.5} rotationIntensity={0.3} floatIntensity={0.5}>
-      <group ref={modelGroupRef} position={[0, 0, 0]}>
-        {/* Layer 1: Front Mesh Canvas bertumpu pada Tekstur Kamera */}
-        <mesh position={[0, 0, 0.2]}>
-          <boxGeometry args={[2.2, 1.6, 0.4]} />
+    <Float speed={2} rotationIntensity={0.2} floatIntensity={0.4}>
+      <group ref={modelGroupRef} position={[0, -0.2, 0]}>
+        
+        {/* Layer 1: Badan Utama Botol Minuman (Cylinder dengan Tekstur Tangkapan Kamera) */}
+        <mesh position={[0, 0, 0]}>
+          <cylinderGeometry args={[0.7, 0.75, 2.2, 32]} />
           <meshStandardMaterial
             map={texture}
-            roughness={0.15}
-            metalness={0.7}
-            envMapIntensity={1.2}
+            roughness={0.2}
+            metalness={0.3}
           />
         </mesh>
 
-        {/* Layer 2: Back Procedural Shell/Cylinder Structure */}
-        <mesh position={[0, 0, -0.1]}>
-          <cylinderGeometry args={[1.3, 1.4, 0.8, 32]} />
-          <meshStandardMaterial color="#1e293b" roughness={0.2} metalness={0.9} />
+        {/* Layer 2: Leher Botol (Procedural Neck) */}
+        <mesh position={[0, 1.25, 0]}>
+          <cylinderGeometry args={[0.35, 0.65, 0.3, 32]} />
+          <meshStandardMaterial color="#0284c7" roughness={0.1} metalness={0.8} />
         </mesh>
 
-        {/* Layer 3: Orbiting Emissive Ring Node */}
+        {/* Layer 3: Tutup Botol Minuman (Procedural Cap) */}
+        <mesh position={[0, 1.5, 0]}>
+          <cylinderGeometry args={[0.38, 0.38, 0.25, 32]} />
+          <meshStandardMaterial color="#0284c7" roughness={0.3} metalness={0.6} />
+        </mesh>
+
+        {/* Layer 4: Energy Hologram Ring (img2threejs Indicator) */}
         <mesh ref={ringRef} position={[0, 0, 0]}>
-          <torusGeometry args={[1.8, 0.04, 16, 100]} />
+          <torusGeometry args={[1.1, 0.03, 16, 100]} />
           <meshStandardMaterial color="#10b981" emissive="#059669" emissiveIntensity={0.8} />
         </mesh>
 
-        {/* Layer 4: Bounding Wireframe Nodes (Quality-Gated Visual Indicator) */}
-        <mesh position={[0, 0, 0]}>
-          <boxGeometry args={[2.4, 1.8, 0.9]} />
+        {/* Layer 5: Bounding Wireframe Grid Botol */}
+        <mesh position={[0, 0.15, 0]}>
+          <cylinderGeometry args={[0.8, 0.85, 2.9, 16]} />
           <meshStandardMaterial color="#34d399" wireframe />
         </mesh>
 
-        {/* Floating Text Label untuk img2threejs */}
-        <Text position={[0, -1.3, 0]} fontSize={0.18} color="#10b981" anchorX="center" anchorY="middle">
-          ⚡ img2threejs Procedural 3D Model Reconstructed
+        {/* Label Indikator 3D */}
+        <Text position={[0, -1.5, 0]} fontSize={0.18} color="#10b981" anchorX="center" anchorY="middle">
+          ⚡ img2threejs Procedural Bottle Model Reconstructed
         </Text>
       </group>
     </Float>
@@ -209,7 +214,6 @@ function Img2ThreeJSProceduralModel({ imageUrl }: { imageUrl: string }) {
 }
 
 export default function SceneViewport({ presenterModel, isPresenting = false }: SceneViewportProps) {
-  // Pengecekan status kustom gambar/kamera
   const isCustomImage = typeof presenterModel === 'object' && presenterModel?.type === 'custom_image';
   const isImg2ThreeJS = typeof presenterModel === 'object' && presenterModel?.type === 'img2threejs_procedural';
 
@@ -218,17 +222,14 @@ export default function SceneViewport({ presenterModel, isPresenting = false }: 
     : presenterModel?.id || presenterModel?.type || 'default';
 
   const renderModel = () => {
-    // 1. Eksekusi Model Prosedural img2threejs saat tombol Kamera / Capture diklik
     if (isImg2ThreeJS && presenterModel?.imageUrl) {
       return <Img2ThreeJSProceduralModel imageUrl={presenterModel.imageUrl} />;
     }
 
-    // 2. Eksekusi Model Displacement biasa saat "Pilih File Gambar" diklik
     if (isCustomImage && presenterModel?.imageUrl) {
       return <GenerativeMeshFromImage imageUrl={presenterModel.imageUrl} />;
     }
 
-    // 3. Preset bawaan
     switch (modelType) {
       case 'cube':
         return <CubeAvatar isPresenting={isPresenting} />;
