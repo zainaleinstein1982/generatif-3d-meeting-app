@@ -8,6 +8,46 @@ interface SceneViewportProps {
   isPresenting?: boolean;
 }
 
+// Helper untuk Crop & Focus pada Objek Tengah Kamera (Menghilangkan Background/Ruangan)
+function createCroppedFocusedTexture(imageUrl: string, callback: (texture: THREE.Texture, aspect: number) => void) {
+  const img = new Image();
+  img.crossOrigin = 'Anonymous';
+  img.src = imageUrl;
+
+  img.onload = () => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Ukuran Kanvas Tekstur Optimal
+    canvas.width = 512;
+    canvas.height = 768; // Proporsi standar kemasan / kotak rokok (2:3)
+
+    if (ctx) {
+      // 1. Fokus Potong Area Tengah Foto (35% - 65% area tengah tempat benda dipegang)
+      // Ini akan memotong latar belakang ruangan, AC, dan wajah
+      const cropWidth = img.width * 0.45;
+      const cropHeight = img.height * 0.55;
+      const cropX = (img.width - cropWidth) / 2;
+      const cropY = (img.height - cropHeight) / 2;
+
+      // Fill background netral
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Digambar hanya bagian tengah yang difokuskan
+      ctx.drawImage(
+        img,
+        cropX, cropY, cropWidth, cropHeight, // Area sumber (ditengah)
+        0, 0, canvas.width, canvas.height     // Area tujuan kanvas
+      );
+    }
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.needsUpdate = true;
+    callback(texture, 0.65); // Aspect ratio presisi kotak/balok
+  };
+}
+
 // 1. Model Default (Orbital Hologram)
 function DefaultAvatar({ isPresenting }: { isPresenting?: boolean }) {
   return (
@@ -54,34 +94,16 @@ function MouseAvatar({ isPresenting }: { isPresenting?: boolean }) {
   );
 }
 
-// 4. REKONSTRUKSI DINAMIS BERDASARKAN FOTO INPUT (Kotak Rokok, Botol, dll)
+// 4. REKONSTRUKSI FOKUS OBJEK DENGAN AUTO-CROP
 function DynamicImageTo3DObject({ imageUrl }: { imageUrl: string }) {
   const meshGroupRef = useRef<THREE.Group>(null!);
   const [texture, setTexture] = useState<THREE.Texture | null>(null);
-  const [aspectRatio, setAspectRatio] = useState<number>(1);
-  const [isBoxShape, setIsBoxShape] = useState<boolean>(true);
 
-  // Load Tekstur Dinamis dari Foto Kamera / Upload
   useEffect(() => {
     if (!imageUrl) return;
-
-    const img = new Image();
-    img.crossOrigin = 'Anonymous';
-    img.src = imageUrl;
-
-    img.onload = () => {
-      const loadedTexture = new THREE.Texture(img);
-      loadedTexture.needsUpdate = true;
-      setTexture(loadedTexture);
-
-      // Hitung rasio gambar untuk menentukan proporsi objek 3D
-      const aspect = img.width / img.height;
-      setAspectRatio(aspect);
-
-      // Deteksi sederhana: Jika rasio dekat persegi/panjang (seperti kotak rokok/kemasan)
-      // Gunakan bentuk Box/Balok 3D, jika tidak gunakan silinder
-      setIsBoxShape(true); 
-    };
+    createCroppedFocusedTexture(imageUrl, (focusedTex) => {
+      setTexture(focusedTex);
+    });
   }, [imageUrl]);
 
   useFrame((_, delta) => {
@@ -90,32 +112,32 @@ function DynamicImageTo3DObject({ imageUrl }: { imageUrl: string }) {
     }
   });
 
+  // Material terpisah per sisi agar sisi samping dan atas tidak melar ditarik gambar utama
+  const boxMaterials = useMemo(() => {
+    if (!texture) return null;
+
+    const sideMaterial = new THREE.MeshStandardMaterial({ color: '#111827', roughness: 0.4 });
+    const frontBackMaterial = new THREE.MeshStandardMaterial({ map: texture, roughness: 0.2 });
+
+    // Multi-material untuk [Kanan, Kiri, Atas, Bawah, Depan, Belakang]
+    return [
+      sideMaterial,      // Right
+      sideMaterial,      // Left
+      sideMaterial,      // Top
+      sideMaterial,      // Bottom
+      frontBackMaterial, // Front (Gambar terfokus)
+      frontBackMaterial, // Back
+    ];
+  }, [texture]);
+
   return (
     <group position={[0, -0.1, 0]}>
       <group ref={meshGroupRef} position={[0, 0.2, 0]}>
-        {texture && (
-          isBoxShape ? (
-            /* Rekonstruksi 3D Bentuk Kotak / Box (Cocok untuk Kotak Rokok, Kemasan, Buku) */
-            <mesh position={[0, 0, 0]}>
-              {/* Dimensi balok disesuaikan dengan proporsi foto */}
-              <boxGeometry args={[1.2 * aspectRatio, 1.8, 0.5]} />
-              <meshStandardMaterial
-                map={texture}
-                roughness={0.3}
-                metalness={0.1}
-              />
-            </mesh>
-          ) : (
-            /* Rekonstruksi 3D Bentuk Silinder (Cocok untuk Botol / Kaleng) */
-            <mesh position={[0, 0, 0]}>
-              <cylinderGeometry args={[0.5, 0.5, 1.8, 32]} />
-              <meshStandardMaterial
-                map={texture}
-                roughness={0.3}
-                metalness={0.1}
-              />
-            </mesh>
-          )
+        {boxMaterials && (
+          <mesh position={[0, 0, 0]} material={boxMaterials}>
+            {/* Ukuran Proporsional Kotak Rokok (Lebar: 1.1, Tinggi: 1.6, Tebal: 0.4) */}
+            <boxGeometry args={[1.1, 1.6, 0.4]} />
+          </mesh>
         )}
       </group>
 
@@ -161,7 +183,7 @@ export default function SceneViewport({ presenterModel, isPresenting = false }: 
 
   return (
     <div className="w-full h-full relative overflow-hidden bg-slate-950">
-      {/* Overlay UI - Source Photo (Kiri Atas) */}
+      {/* Overlay UI - Source Photo */}
       {isImg2ThreeJS && presenterModel?.imageUrl && (
         <div className="absolute top-6 left-6 z-10 bg-slate-900/90 backdrop-blur-md p-2 rounded-xl border border-sky-500/40 shadow-2xl flex flex-col items-center">
           <div className="w-24 h-24 rounded-lg overflow-hidden border border-slate-700 bg-black">
@@ -173,11 +195,11 @@ export default function SceneViewport({ presenterModel, isPresenting = false }: 
         </div>
       )}
 
-      {/* Overlay UI - RESULT IN CODE (Kanan Bawah) */}
+      {/* Overlay UI - RESULT IN CODE */}
       {isImg2ThreeJS && (
         <div className="absolute bottom-6 right-6 z-10">
           <span className="text-[10px] text-sky-400 font-mono tracking-widest uppercase bg-slate-900/90 border border-sky-500/30 px-3 py-1.5 rounded-md shadow-lg">
-            DYNAMIC 3D MODEL
+            FOCUSED 3D MODEL
           </span>
         </div>
       )}
