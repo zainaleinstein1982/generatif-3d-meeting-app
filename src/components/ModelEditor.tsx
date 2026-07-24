@@ -1,4 +1,5 @@
-import { X, Box, Sparkles, Check, Image as ImageIcon, Camera, Mouse, GitFork } from 'lucide-react';
+import { useState } from 'react';
+import { X, Box, Sparkles, Check, Image as ImageIcon, Camera, Mouse, GitFork, Loader2 } from 'lucide-react'; // 1. Tambahkan Loader2
 
 interface ModelEditorProps {
   currentModel: any;
@@ -15,15 +16,18 @@ const MODEL_OPTIONS = [
 ];
 
 export default function ModelEditor({ currentModel, onSelectModel, onClose }: ModelEditorProps) {
+  // 2. State untuk simulasi analisis VLM (Image-to-Code)
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  
   const activeModelId = typeof currentModel === 'string' ? currentModel : currentModel?.id || 'default';
 
-  // Handler umum untuk memproses file baik dari Import File maupun Kamera
-  const handleMediaProcess = (file?: File) => {
+  // Handler 1: Proses File Gambar Standar (Displacement Mesh Engine)
+  const handleFileProcess = (file?: File) => {
     if (file) {
       const reader = new FileReader();
       reader.onload = (event) => {
         const imageUrl = event.target?.result as string;
-        // Mengirim data gambar ke Mesh Displacement Engine di SceneViewport
+        // Mengirim tipe model standard displacement
         onSelectModel({
           id: 'custom_image',
           type: 'custom_image',
@@ -35,8 +39,34 @@ export default function ModelEditor({ currentModel, onSelectModel, onClose }: Mo
     }
   };
 
+  // Handler 2: Proses Kamera / Capture (Powered by hoainho/img2threejs - Procedural Reconstruction)
+  const handleImg2ThreeJSCapture = (file?: File) => {
+    if (file) {
+      setIsAnalyzing(true); // Mulai loading
+      
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const imageUrl = event.target?.result as string;
+        
+        // Simulasi waktu analisis AI Image-to-Code (misal 1.5 detik)
+        setTimeout(() => {
+          setIsAnalyzing(false); // Selesai loading
+          
+          // Mengirim tipe model khusus prosedural
+          onSelectModel({
+            id: 'img2threejs_procedural',
+            type: 'img2threejs_procedural', // Tipe ini harus ditangani di SceneViewport Langkah 2
+            imageUrl: imageUrl, // Gambar referensi (VLM input)
+            name: `CodeReconstruction_${file.name}`,
+          });
+        }, 1500);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   return (
-    <div className="absolute top-16 right-4 z-30 w-80 bg-slate-900/90 border border-slate-700/80 rounded-2xl shadow-2xl backdrop-blur-xl p-4 text-slate-100 animate-in fade-in zoom-in-95 duration-200">
+    <div className="absolute top-16 right-4 z-30 w-80 bg-slate-900/90 border border-slate-700/80 rounded-2xl shadow-2xl backdrop-blur-xl p-4 text-slate-100 animate-in fade-in zoom-in-95 duration-200 overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between pb-3 border-b border-slate-800">
         <div className="flex items-center gap-2">
@@ -88,35 +118,53 @@ export default function ModelEditor({ currentModel, onSelectModel, onClose }: Mo
         })}
       </div>
 
-      {/* Fitur AI Image-to-3D Reconstruction (File & Kamera Berdampingan) */}
-      <div className="pt-3 border-t border-slate-800 space-y-2">
-        <label className="flex items-center gap-1.5 text-[11px] font-medium text-slate-300">
-          <Sparkles className="w-3.5 h-3.5 text-sky-400" />
-          AI Image-to-3D Reconstruction
+      {/* Fitur AI Image-to-3D Reconstruction (File & Kamera Terpisah Handler) */}
+      <div className="pt-3 border-t border-slate-800 space-y-2 relative">
+        {/* Overlay Loading saat analisis img2threejs */}
+        {isAnalyzing && (
+          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center rounded-xl gap-2 text-emerald-300 border border-emerald-800">
+            <Loader2 className="w-6 h-6 animate-spin" />
+            <span className="text-[10px] font-medium">Reconstructing Code-Only Model...</span>
+          </div>
+        )}
+
+        <label className="flex items-center justify-between text-[11px] font-medium text-slate-300">
+          <span className="flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+            AI Image-to-3D Reconstruction
+          </span>
+          <span className="text-[9px] text-emerald-400 bg-emerald-950/60 px-1.5 py-0.5 rounded border border-emerald-800">
+            img2threejs
+          </span>
         </label>
         
         <div className="grid grid-cols-2 gap-2">
-          {/* Tombol 1: Pilih File Gambar */}
+          {/* Tombol 1: Pilih File Gambar (Displacement Mesh) */}
           <label className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-sky-600/20 border border-sky-500/40 hover:bg-sky-600/30 text-sky-300 text-[11px] font-medium cursor-pointer transition-all text-center gap-1">
             <ImageIcon className="w-4 h-4" />
             <span>Pilih File Gambar</span>
             <input
               type="file"
               accept="image/jpeg, image/png, image/webp"
-              onChange={(e) => handleMediaProcess(e.target.files?.[0])}
+              onChange={(e) => handleFileProcess(e.target.files?.[0])}
               className="hidden"
             />
           </label>
 
-          {/* Tombol 2: Ambil Foto / Video via Kamera */}
-          <label className="flex flex-col items-center justify-center p-2.5 rounded-xl bg-emerald-600/20 border border-emerald-500/40 hover:bg-emerald-600/30 text-emerald-300 text-[11px] font-medium cursor-pointer transition-all text-center gap-1">
+          {/* Tombol 2: Kamera / Capture (Procedural img2threejs Engine) */}
+          <label className={`flex flex-col items-center justify-center p-2.5 rounded-xl border transition-all text-center gap-1 ${
+            isAnalyzing 
+              ? 'bg-slate-800 border-slate-700 text-slate-500 cursor-not-allowed'
+              : 'bg-emerald-600/20 border-emerald-500/40 hover:bg-emerald-600/30 text-emerald-300 text-[11px] font-medium cursor-pointer'
+          }`}>
             <Camera className="w-4 h-4" />
             <span>Kamera / Capture</span>
             <input
               type="file"
               accept="image/*,video/*"
               capture="environment"
-              onChange={(e) => handleMediaProcess(e.target.files?.[0])}
+              disabled={isAnalyzing} // Disable input saat loading
+              onChange={(e) => handleImg2ThreeJSCapture(e.target.files?.[0])}
               className="hidden"
             />
           </label>
@@ -125,7 +173,7 @@ export default function ModelEditor({ currentModel, onSelectModel, onClose }: Mo
 
       {/* Footer */}
       <div className="pt-3 text-[10px] text-slate-500 text-center">
-        Secara dinamis merekonstruksi piksel gambar menjadi Mesh 3D bervolume.
+        Powered by Procedural img2threejs Code-Only Model Engine.
       </div>
     </div>
   );
