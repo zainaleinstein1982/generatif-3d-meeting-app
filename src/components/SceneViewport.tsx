@@ -18,7 +18,6 @@ function DefaultAvatar({ isPresenting }: { isPresenting?: boolean }) {
           color={isPresenting ? '#06b6d4' : '#3b82f6'}
           roughness={0.2}
           metalness={0.9}
-          wireframe={isPresenting}
         />
       </mesh>
       <mesh position={[0, 0, 0]} rotation={[Math.PI / 3, 0, 0]}>
@@ -39,7 +38,6 @@ function CubeAvatar({ isPresenting }: { isPresenting?: boolean }) {
           color={isPresenting ? '#f43f5e' : '#10b981'}
           roughness={0.1}
           metalness={0.8}
-          wireframe={isPresenting}
         />
       </mesh>
     </Float>
@@ -57,7 +55,6 @@ function MouseAvatar({ isPresenting }: { isPresenting?: boolean }) {
             color={isPresenting ? '#38bdf8' : '#6366f1'}
             roughness={0.2}
             metalness={0.8}
-            wireframe={isPresenting}
           />
         </mesh>
         <mesh position={[0, 0.26, -0.3]} rotation={[Math.PI / 2, 0, 0]}>
@@ -145,51 +142,79 @@ function GenerativeMeshFromImage({ imageUrl }: { imageUrl: string }) {
   );
 }
 
-// 6. REKONSTRUKSI OBJEK 3D BERSIH (Tanpa Garis Wireframe & Tanpa Cincin Pembatas)
+// 6. MODEL 3D BERGAYA IMG2THREEJS (Lengkap dengan Podia/Pedestal, Glow, & Studio Lighting)
 function Img2ThreeJSProceduralModel({ imageUrl }: { imageUrl: string }) {
   const texture = useTexture(imageUrl);
   const modelGroupRef = useRef<THREE.Group>(null!);
 
-  // Mirror tekstur secara horizontal agar hasil tangkapan kamera tidak terbalik
+  // Mirror tekstur secara horizontal agar posisi tidak terbalik
   texture.wrapS = THREE.RepeatWrapping;
   texture.repeat.x = -1;
   texture.center.set(0.5, 0.5);
 
   useFrame((_, delta) => {
     if (modelGroupRef.current) {
-      modelGroupRef.current.rotation.y += delta * 0.4; // Rotasi halus 360 derajat
+      modelGroupRef.current.rotation.y += delta * 0.3; // Rotasi panggung 360 derajat
     }
   });
 
   return (
-    <Float speed={1.5} rotationIntensity={0.1} floatIntensity={0.3}>
-      <group ref={modelGroupRef} position={[0, -0.2, 0]}>
+    <group position={[0, -0.6, 0]}>
+      {/* Objek Utama yang Berputar */}
+      <group ref={modelGroupRef} position={[0, 0.8, 0]}>
         
-        {/* Badan Utama Tempat Minuman / Botol (3D Solid Cylinder) */}
+        {/* Badan Utama Objek dengan Aksen Emas & Tekstur */}
         <mesh position={[0, 0, 0]}>
-          <cylinderGeometry args={[0.7, 0.75, 2.2, 64]} />
+          <cylinderGeometry args={[0.75, 0.8, 1.8, 64]} />
           <meshStandardMaterial
             map={texture}
-            roughness={0.25}
-            metalness={0.2}
-            wireframe={false} // Memastikan tidak ada garis jaring
+            roughness={0.15}
+            metalness={0.85}
+            emissive="#d97706"
+            emissiveIntensity={0.15}
           />
         </mesh>
 
-        {/* Leher Tempat Minuman */}
-        <mesh position={[0, 1.25, 0]}>
-          <cylinderGeometry args={[0.35, 0.65, 0.3, 32]} />
-          <meshStandardMaterial color="#0284c7" roughness={0.2} metalness={0.7} />
+        {/* Aksesori Atas Bergaya Metallic Emas */}
+        <mesh position={[0, 1.05, 0]}>
+          <cylinderGeometry args={[0.5, 0.72, 0.3, 32]} />
+          <meshStandardMaterial color="#fbbf24" roughness={0.1} metalness={0.9} />
         </mesh>
 
-        {/* Tutup Tempat Minuman */}
-        <mesh position={[0, 1.5, 0]}>
-          <cylinderGeometry args={[0.38, 0.38, 0.25, 32]} />
-          <meshStandardMaterial color="#0369a1" roughness={0.3} metalness={0.6} />
+        {/* Penutup Emas Berpendar (Glow Cap) */}
+        <mesh position={[0, 1.3, 0]}>
+          <cylinderGeometry args={[0.52, 0.52, 0.2, 32]} />
+          <meshStandardMaterial
+            color="#f59e0b"
+            roughness={0.05}
+            metalness={0.95}
+            emissive="#f59e0b"
+            emissiveIntensity={0.3}
+          />
         </mesh>
-
       </group>
-    </Float>
+
+      {/* Podium / Pedestal Panggung (Gaya Img2threejs) */}
+      <group position={[0, -0.1, 0]}>
+        {/* Base Ring Luar Glowing */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
+          <ringGeometry args={[1.5, 1.6, 64]} />
+          <meshBasicMaterial color="#fbbf24" side={THREE.DoubleSide} />
+        </mesh>
+
+        {/* Base Ring Dalam Glowing */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
+          <ringGeometry args={[1.1, 1.18, 64]} />
+          <meshBasicMaterial color="#f59e0b" side={THREE.DoubleSide} />
+        </mesh>
+
+        {/* Alas Panggung Reflektif Dark Metallic */}
+        <mesh position={[0, -0.1, 0]}>
+          <cylinderGeometry args={[1.8, 1.9, 0.2, 64]} />
+          <meshStandardMaterial color="#090d16" roughness={0.1} metalness={0.9} />
+        </mesh>
+      </group>
+    </group>
   );
 }
 
@@ -225,13 +250,27 @@ export default function SceneViewport({ presenterModel, isPresenting = false }: 
   };
 
   return (
-    <div className="w-full h-full relative">
-      <Canvas camera={{ position: [0, 1.5, 5], fov: 50 }}>
-        <ambientLight intensity={1.2} />
-        <directionalLight position={[10, 10, 5]} intensity={1.5} />
-        <pointLight position={[-10, -10, -10]} intensity={0.5} />
+    <div className="w-full h-full relative overflow-hidden bg-slate-950">
+      {/* Inset Reference Photo (Gaya img2threejs di pojok kiri atas) */}
+      {isImg2ThreeJS && presenterModel?.imageUrl && (
+        <div className="absolute top-4 left-4 z-10 bg-slate-900/80 backdrop-blur-md p-2 rounded-xl border border-amber-500/30 shadow-2xl flex flex-col items-center">
+          <div className="w-24 h-24 rounded-lg overflow-hidden border border-slate-700 bg-black">
+            <img src={presenterModel.imageUrl} alt="Source Reference" className="w-full h-full object-cover" />
+          </div>
+          <span className="text-[10px] text-amber-400 font-mono mt-1.5 font-semibold tracking-wider uppercase">
+            SOURCE PHOTO
+          </span>
+        </div>
+      )}
 
-        <Stars radius={100} depth={50} count={3000} factor={4} saturation={0} fade speed={1} />
+      <Canvas camera={{ position: [0, 1.8, 4.5], fov: 45 }}>
+        {/* Pencahayaan Studio Mewah */}
+        <ambientLight intensity={0.6} />
+        <directionalLight position={[5, 8, 5]} intensity={2.2} color="#fff7ed" />
+        <pointLight position={[-5, 3, -3]} intensity={1.5} color="#d97706" />
+        <spotLight position={[0, 10, 0]} intensity={2} angle={0.6} penumbra={0.8} color="#fbbf24" />
+
+        <Stars radius={80} depth={50} count={2000} factor={3} saturation={0} fade speed={1} />
 
         {renderModel()}
 
@@ -239,9 +278,9 @@ export default function SceneViewport({ presenterModel, isPresenting = false }: 
           enablePan={true}
           enableZoom={true}
           enableRotate={true}
-          maxPolarAngle={Math.PI / 2 + 0.1}
+          maxPolarAngle={Math.PI / 2}
           minDistance={2}
-          maxDistance={12}
+          maxDistance={10}
         />
       </Canvas>
     </div>
