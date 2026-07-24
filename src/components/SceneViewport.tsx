@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react';
+import { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Stars, Float, Text, Line } from '@react-three/drei';
 import * as THREE from 'three';
@@ -103,67 +103,93 @@ function PipelineDiagramAvatar() {
   );
 }
 
-// 5. REKONSTRUKSI EXACT IMG2THREEJS (PROPORTIONAL 3D PLANE RECONSTRUCTION)
-function Img2ThreeJSBottleModel({ imageUrl }: { imageUrl: string }) {
+// 5. REKONSTRUKSI MODEL 3D PROCEDURAL BOTOL MINUMAN (MURNI MESH 3D - BUKAN FOTO)
+function Img2ThreeJSBottleModel() {
   const modelGroupRef = useRef<THREE.Group>(null!);
-  const [texture, setTexture] = useState<THREE.Texture | null>(null);
-  const [aspect, setAspect] = useState<number>(1);
 
-  useEffect(() => {
-    const loader = new THREE.TextureLoader();
-    loader.load(imageUrl, (tex) => {
-      tex.colorSpace = THREE.SRGBColorSpace;
-      const img = tex.image;
-      if (img && img.width && img.height) {
-        setAspect(img.width / img.height);
-      }
-      setTexture(tex);
-    });
-  }, [imageUrl]);
+  // Membuat Kurva Kontur Botol 3D Ergonomis (Lathe Geometry)
+  const bottlePoints = useMemo(() => {
+    const points: THREE.Vector2[] = [];
+    points.push(new THREE.Vector2(0, -0.9));       // Dasar Bawah
+    points.push(new THREE.Vector2(0.42, -0.9));    // Bawah
+    points.push(new THREE.Vector2(0.45, -0.5));    // Lekukan Bawah
+    points.push(new THREE.Vector2(0.38, -0.1));    // Pegangan Tengah (Grip)
+    points.push(new THREE.Vector2(0.45, 0.3));     // Bahu Botol Atas
+    points.push(new THREE.Vector2(0.22, 0.75));    // Leher Botol
+    points.push(new THREE.Vector2(0.22, 0.9));     // Ulir Tutup
+    points.push(new THREE.Vector2(0, 0.9));        // Puncak Tutup
+    return points;
+  }, []);
 
   useFrame((_, delta) => {
     if (modelGroupRef.current) {
-      // Rotasi mengayun halus khas panggung visualizer 3D
-      modelGroupRef.current.rotation.y = Math.sin(Date.now() * 0.001) * 0.2;
+      modelGroupRef.current.rotation.y += delta * 0.5; // Rotasi berputar 360 derajat
     }
   });
 
-  const planeHeight = 2.2;
-  const planeWidth = planeHeight * aspect;
-
   return (
     <group position={[0, -0.2, 0]}>
-      <group ref={modelGroupRef} position={[0, 0.6, 0]}>
+      {/* Objek 3D Botol Utama */}
+      <group ref={modelGroupRef} position={[0, 0.5, 0]}>
 
-        {/* Panel 3D Utama: Menampilkan Foto Utuh Presisi Sesuai Rasio Asli */}
-        {texture && (
-          <mesh position={[0, 0, 0]}>
-            <planeGeometry args={[planeWidth, planeHeight]} />
-            <meshStandardMaterial
-              map={texture}
-              roughness={0.2}
-              metalness={0.1}
-              transparent={true}
-              side={THREE.DoubleSide}
-            />
-          </mesh>
-        )}
-
-        {/* Backplate / Bayangan Kedalaman 3D Cyan Frame */}
-        <mesh position={[0, 0, -0.05]}>
-          <planeGeometry args={[planeWidth + 0.1, planeHeight + 0.1]} />
-          <meshBasicMaterial color="#0284c7" transparent opacity={0.3} />
+        {/* 1. Badan Botol Kaca/Plastik Transparan berlekuk */}
+        <mesh>
+          <latheGeometry args={[bottlePoints, 32]} />
+          <meshPhysicalMaterial
+            color="#0ea5e9"
+            emissive="#0284c7"
+            emissiveIntensity={0.2}
+            roughness={0.1}
+            metalness={0.1}
+            transmission={0.8}
+            thickness={0.5}
+            transparent={true}
+            opacity={0.85}
+          />
         </mesh>
 
-        {/* Halo / Glow Ring di Belakang Objek */}
-        <mesh position={[0, 0, -0.08]}>
-          <ringGeometry args={[1.0, 1.3, 64]} />
-          <meshBasicMaterial color="#38bdf8" transparent opacity={0.4} side={THREE.DoubleSide} />
+        {/* 2. Isi Cairan Isotonic Dalam Botol (Luminous Blue Liquid) */}
+        <mesh position={[0, -0.05, 0]} scale={[0.92, 0.88, 0.92]}>
+          <latheGeometry args={[bottlePoints, 32]} />
+          <meshStandardMaterial
+            color="#06b6d4"
+            emissive="#0891b2"
+            emissiveIntensity={0.5}
+            roughness={0.3}
+          />
+        </mesh>
+
+        {/* 3. Label Kemasan Botol (Yellow-Green Isotonic Branding Accent) */}
+        <mesh position={[0, 0.1, 0]}>
+          <cylinderGeometry args={[0.42, 0.42, 0.65, 32]} />
+          <meshStandardMaterial
+            color="#84cc16"
+            emissive="#65a30d"
+            emissiveIntensity={0.3}
+            roughness={0.2}
+            metalness={0.4}
+          />
+        </mesh>
+
+        {/* 4. Tutup Botol Metalik Bright (Blue Cap) */}
+        <mesh position={[0, 0.82, 0]}>
+          <cylinderGeometry args={[0.24, 0.24, 0.18, 32]} />
+          <meshStandardMaterial
+            color="#0284c7"
+            roughness={0.2}
+            metalness={0.8}
+          />
+        </mesh>
+
+        {/* 5. Aksen Ring Glow Emas/Cyan Sesuai Gaya img2threejs */}
+        <mesh position={[0, 0.1, 0]}>
+          <torusGeometry args={[0.46, 0.02, 16, 64]} />
+          <meshBasicMaterial color="#38bdf8" />
         </mesh>
       </group>
 
-      {/* Podium Ground Studio (Gaya img2threejs) */}
-      <group position={[0, -0.6, 0]}>
+      {/* Podium Ground Studio (Dark Stage + Glowing Ring) */}
+      <group position={[0, -0.5, 0]}>
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
           <ringGeometry args={[1.2, 1.25, 64]} />
           <meshBasicMaterial color="#38bdf8" side={THREE.DoubleSide} />
@@ -175,7 +201,7 @@ function Img2ThreeJSBottleModel({ imageUrl }: { imageUrl: string }) {
         </mesh>
       </group>
 
-      {/* Garis Penunjuk Cyan (Dashed Line) */}
+      {/* Garis Penunjuk Hubungan Foto Ref ke Model 3D */}
       <Line
         points={[[-2.0, 1.8, 0], [-0.8, 1.2, 0], [0, 0.8, 0]]}
         color="#38bdf8"
@@ -195,8 +221,8 @@ export default function SceneViewport({ presenterModel, isPresenting = false }: 
     : presenterModel?.id || presenterModel?.type || 'default';
 
   const renderModel = () => {
-    if (isImg2ThreeJS && presenterModel?.imageUrl) {
-      return <Img2ThreeJSBottleModel imageUrl={presenterModel.imageUrl} />;
+    if (isImg2ThreeJS) {
+      return <Img2ThreeJSBottleModel />;
     }
 
     switch (modelType) {
@@ -215,7 +241,7 @@ export default function SceneViewport({ presenterModel, isPresenting = false }: 
 
   return (
     <div className="w-full h-full relative overflow-hidden bg-slate-950">
-      {/* Inset Photo Reference (Gaya UI img2threejs) */}
+      {/* Inset Photo Reference (SOURCE PHOTO UI) */}
       {isImg2ThreeJS && presenterModel?.imageUrl && (
         <div className="absolute top-6 left-6 z-10 bg-slate-900/90 backdrop-blur-md p-2 rounded-xl border border-sky-500/40 shadow-2xl flex flex-col items-center">
           <div className="w-24 h-24 rounded-lg overflow-hidden border border-slate-700 bg-black">
@@ -237,10 +263,11 @@ export default function SceneViewport({ presenterModel, isPresenting = false }: 
       )}
 
       <Canvas camera={{ position: [0, 1.2, 4.2], fov: 45 }}>
-        {/* Studio Lighting */}
-        <ambientLight intensity={1.2} />
-        <directionalLight position={[5, 8, 5]} intensity={1.5} color="#ffffff" />
-        <pointLight position={[-4, 2, -2]} intensity={1.5} color="#0284c7" />
+        {/* Lighting Studio 3D (Reflektif & Glow) */}
+        <ambientLight intensity={0.9} />
+        <directionalLight position={[5, 8, 5]} intensity={2.0} color="#ffffff" />
+        <pointLight position={[-4, 2, -2]} intensity={1.8} color="#0284c7" />
+        <spotLight position={[0, 8, 0]} intensity={2.5} angle={0.5} penumbra={0.8} color="#38bdf8" />
 
         <Stars radius={80} depth={50} count={2000} factor={3} saturation={0} fade speed={1} />
 
