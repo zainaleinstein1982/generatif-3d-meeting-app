@@ -1,4 +1,4 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useMemo, useEffect, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Stars, Float } from '@react-three/drei';
 import * as THREE from 'three';
@@ -6,54 +6,6 @@ import * as THREE from 'three';
 interface SceneViewportProps {
   presenterModel?: any;
   isPresenting?: boolean;
-}
-
-// Helper untuk membuat Texture Label Isoplus 2D yang ditempel melengkung sempurna
-function useIsoplusLabelTexture() {
-  return useMemo(() => {
-    const canvas = document.createElement('canvas');
-    canvas.width = 1024;
-    canvas.height = 512;
-    const ctx = canvas.getContext('2d');
-
-    if (ctx) {
-      // 1. Latar Belakang Label (Biru Tua khas Isoplus)
-      ctx.fillStyle = '#024da1';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // 2. Aksesori Gelombang / Stripe Kuning Khas Isoplus di Atas
-      ctx.fillStyle = '#facc15';
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(canvas.width, 0);
-      ctx.lineTo(canvas.width, 120);
-      ctx.quadraticCurveTo(canvas.width * 0.5, 180, 0, 120);
-      ctx.closePath();
-      ctx.fill();
-
-      // 3. Teks ISOPLUS (Cetak Tebal Putih dengan Shadow)
-      ctx.fillStyle = '#ffffff';
-      ctx.font = 'bold 110px Arial, sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      
-      // Render di Sisi Depan
-      ctx.fillText('ISOPLUS', canvas.width * 0.25, canvas.height * 0.58);
-      // Render di Sisi Belakang
-      ctx.fillText('ISOPLUS', canvas.width * 0.75, canvas.height * 0.58);
-
-      // 4. Sub-teks ISOTONIC DRINK
-      ctx.fillStyle = '#024da1';
-      ctx.font = 'bold 36px Arial, sans-serif';
-      ctx.fillText('ISOTONIC', canvas.width * 0.25, 70);
-      ctx.fillText('ISOTONIC', canvas.width * 0.75, 70);
-    }
-
-    const texture = new THREE.CanvasTexture(canvas);
-    texture.wrapS = THREE.RepeatWrapping;
-    texture.wrapT = THREE.ClampToEdgeWrapping;
-    return texture;
-  }, []);
 }
 
 // 1. Model Default (Orbital Hologram)
@@ -102,77 +54,69 @@ function MouseAvatar({ isPresenting }: { isPresenting?: boolean }) {
   );
 }
 
-// 4. Botol ISOPLUS 3D Presisi dengan Label Menempel
-function Img2ThreeJSIsoplusBottle() {
-  const bottleGroupRef = useRef<THREE.Group>(null!);
-  const labelTexture = useIsoplusLabelTexture();
+// 4. REKONSTRUKSI DINAMIS BERDASARKAN FOTO INPUT (Kotak Rokok, Botol, dll)
+function DynamicImageTo3DObject({ imageUrl }: { imageUrl: string }) {
+  const meshGroupRef = useRef<THREE.Group>(null!);
+  const [texture, setTexture] = useState<THREE.Texture | null>(null);
+  const [aspectRatio, setAspectRatio] = useState<number>(1);
+  const [isBoxShape, setIsBoxShape] = useState<boolean>(true);
 
-  // Kontur Lekukan Botol Asli
-  const points = useMemo(() => {
-    const pts: THREE.Vector2[] = [];
-    pts.push(new THREE.Vector2(0, -1.0));
-    pts.push(new THREE.Vector2(0.38, -1.0));
-    pts.push(new THREE.Vector2(0.42, -0.9));
-    pts.push(new THREE.Vector2(0.42, -0.3));
-    pts.push(new THREE.Vector2(0.37, 0.0));
-    pts.push(new THREE.Vector2(0.37, 0.2));
-    pts.push(new THREE.Vector2(0.42, 0.5));
-    pts.push(new THREE.Vector2(0.22, 0.85));
-    pts.push(new THREE.Vector2(0.2, 0.98));
-    pts.push(new THREE.Vector2(0.22, 1.0));
-    return pts;
-  }, []);
+  // Load Tekstur Dinamis dari Foto Kamera / Upload
+  useEffect(() => {
+    if (!imageUrl) return;
+
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.src = imageUrl;
+
+    img.onload = () => {
+      const loadedTexture = new THREE.Texture(img);
+      loadedTexture.needsUpdate = true;
+      setTexture(loadedTexture);
+
+      // Hitung rasio gambar untuk menentukan proporsi objek 3D
+      const aspect = img.width / img.height;
+      setAspectRatio(aspect);
+
+      // Deteksi sederhana: Jika rasio dekat persegi/panjang (seperti kotak rokok/kemasan)
+      // Gunakan bentuk Box/Balok 3D, jika tidak gunakan silinder
+      setIsBoxShape(true); 
+    };
+  }, [imageUrl]);
 
   useFrame((_, delta) => {
-    if (bottleGroupRef.current) {
-      bottleGroupRef.current.rotation.y += delta * 0.5;
+    if (meshGroupRef.current) {
+      meshGroupRef.current.rotation.y += delta * 0.5;
     }
   });
 
   return (
     <group position={[0, -0.1, 0]}>
-      <group ref={bottleGroupRef} position={[0, 0.2, 0]}>
-        
-        {/* Bodi Transparan Botol Plastik / Cairan Isotonic */}
-        <mesh>
-          <latheGeometry args={[points, 32]} />
-          <meshPhysicalMaterial
-            color="#a5f3fc"
-            roughness={0.1}
-            metalness={0.05}
-            transmission={0.6}
-            opacity={0.9}
-            transparent
-            clearcoat={1}
-            clearcoatRoughness={0.1}
-          />
-        </mesh>
-
-        {/* Label Plastik ISOPLUS Menempel Sempurna (Tidak Mengambang) */}
-        <mesh position={[0, 0.02, 0]}>
-          <cylinderGeometry args={[0.395, 0.395, 0.85, 64, 1, true]} />
-          <meshStandardMaterial
-            map={labelTexture}
-            roughness={0.3}
-            metalness={0.1}
-            side={THREE.DoubleSide}
-          />
-        </mesh>
-
-        {/* Tutup Botol Biru Solid */}
-        <mesh position={[0, 1.05, 0]}>
-          <cylinderGeometry args={[0.23, 0.23, 0.14, 32]} />
-          <meshStandardMaterial color="#024da1" roughness={0.3} metalness={0.2} />
-        </mesh>
-
-        {/* Leher Ring Tutup Botol */}
-        <mesh position={[0, 0.96, 0]}>
-          <cylinderGeometry args={[0.24, 0.24, 0.04, 32]} />
-          <meshStandardMaterial color="#0284c7" />
-        </mesh>
-
-        {/* Glow Lighting Internal */}
-        <pointLight position={[0, 0, 0]} color="#38bdf8" intensity={1.2} distance={2} />
+      <group ref={meshGroupRef} position={[0, 0.2, 0]}>
+        {texture && (
+          isBoxShape ? (
+            /* Rekonstruksi 3D Bentuk Kotak / Box (Cocok untuk Kotak Rokok, Kemasan, Buku) */
+            <mesh position={[0, 0, 0]}>
+              {/* Dimensi balok disesuaikan dengan proporsi foto */}
+              <boxGeometry args={[1.2 * aspectRatio, 1.8, 0.5]} />
+              <meshStandardMaterial
+                map={texture}
+                roughness={0.3}
+                metalness={0.1}
+              />
+            </mesh>
+          ) : (
+            /* Rekonstruksi 3D Bentuk Silinder (Cocok untuk Botol / Kaleng) */
+            <mesh position={[0, 0, 0]}>
+              <cylinderGeometry args={[0.5, 0.5, 1.8, 32]} />
+              <meshStandardMaterial
+                map={texture}
+                roughness={0.3}
+                metalness={0.1}
+              />
+            </mesh>
+          )
+        )}
       </group>
 
       {/* Podium Panggung Neon 3D */}
@@ -199,8 +143,8 @@ export default function SceneViewport({ presenterModel, isPresenting = false }: 
     : presenterModel?.id || presenterModel?.type || 'default';
 
   const renderModel = () => {
-    if (isImg2ThreeJS) {
-      return <Img2ThreeJSIsoplusBottle />;
+    if (isImg2ThreeJS && presenterModel?.imageUrl) {
+      return <DynamicImageTo3DObject imageUrl={presenterModel.imageUrl} />;
     }
 
     switch (modelType) {
@@ -217,7 +161,7 @@ export default function SceneViewport({ presenterModel, isPresenting = false }: 
 
   return (
     <div className="w-full h-full relative overflow-hidden bg-slate-950">
-      {/* Overlay UI - Source Photo */}
+      {/* Overlay UI - Source Photo (Kiri Atas) */}
       {isImg2ThreeJS && presenterModel?.imageUrl && (
         <div className="absolute top-6 left-6 z-10 bg-slate-900/90 backdrop-blur-md p-2 rounded-xl border border-sky-500/40 shadow-2xl flex flex-col items-center">
           <div className="w-24 h-24 rounded-lg overflow-hidden border border-slate-700 bg-black">
@@ -229,11 +173,11 @@ export default function SceneViewport({ presenterModel, isPresenting = false }: 
         </div>
       )}
 
-      {/* Overlay UI - RESULT IN CODE */}
+      {/* Overlay UI - RESULT IN CODE (Kanan Bawah) */}
       {isImg2ThreeJS && (
         <div className="absolute bottom-6 right-6 z-10">
           <span className="text-[10px] text-sky-400 font-mono tracking-widest uppercase bg-slate-900/90 border border-sky-500/30 px-3 py-1.5 rounded-md shadow-lg">
-            RESULT IN CODE
+            DYNAMIC 3D MODEL
           </span>
         </div>
       )}
