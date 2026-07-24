@@ -1,4 +1,4 @@
-import { useRef, useMemo } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Stars, Float, Text, Line } from '@react-three/drei';
 import * as THREE from 'three';
@@ -103,92 +103,105 @@ function PipelineDiagramAvatar() {
   );
 }
 
-// 5. REKONSTRUKSI MODEL 3D PROCEDURAL BOTOL MINUMAN (MURNI MESH 3D - BUKAN FOTO)
-function Img2ThreeJSBottleModel() {
+// 5. REKONSTRUKSI EXACT IMG2THREEJS (AUTO-ISOLATION & TEXTURE MAPPING BOTOL ASLI)
+function Img2ThreeJSBottleModel({ imageUrl }: { imageUrl: string }) {
   const modelGroupRef = useRef<THREE.Group>(null!);
+  const [bottleTexture, setBottleTexture] = useState<THREE.CanvasTexture | null>(null);
 
-  // Membuat Kurva Kontur Botol 3D Ergonomis (Lathe Geometry)
-  const bottlePoints = useMemo(() => {
-    const points: THREE.Vector2[] = [];
-    points.push(new THREE.Vector2(0, -0.9));       // Dasar Bawah
-    points.push(new THREE.Vector2(0.42, -0.9));    // Bawah
-    points.push(new THREE.Vector2(0.45, -0.5));    // Lekukan Bawah
-    points.push(new THREE.Vector2(0.38, -0.1));    // Pegangan Tengah (Grip)
-    points.push(new THREE.Vector2(0.45, 0.3));     // Bahu Botol Atas
-    points.push(new THREE.Vector2(0.22, 0.75));    // Leher Botol
-    points.push(new THREE.Vector2(0.22, 0.9));     // Ulir Tutup
-    points.push(new THREE.Vector2(0, 0.9));        // Puncak Tutup
-    return points;
-  }, []);
+  useEffect(() => {
+    const img = new Image();
+    img.crossOrigin = 'Anonymous';
+    img.src = imageUrl;
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      canvas.width = 512;
+      canvas.height = 1024;
+
+      // Ambil fokus objek botol dari foto
+      const cropW = img.width * 0.45;
+      const cropH = img.height * 0.8;
+      const cropX = (img.width - cropW) / 2;
+      const cropY = (img.height - cropH) / 2;
+
+      ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, canvas.width, canvas.height);
+
+      // Auto Alpha Masking: Bersihkan background terang di sekeliling botol
+      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const data = imgData.data;
+
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+
+        // Jika warna piksel adalah background terang/putih/krem di luar botol
+        if (r > 180 && g > 180 && b > 170 && !(g > r + 30)) {
+          data[i + 3] = 0; // Buat transparan total
+        }
+      }
+      ctx.putImageData(imgData, 0, 0);
+
+      const tex = new THREE.CanvasTexture(canvas);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      setBottleTexture(tex);
+    };
+  }, [imageUrl]);
 
   useFrame((_, delta) => {
     if (modelGroupRef.current) {
-      modelGroupRef.current.rotation.y += delta * 0.5; // Rotasi berputar 360 derajat
+      modelGroupRef.current.rotation.y += delta * 0.4;
     }
   });
 
   return (
     <group position={[0, -0.2, 0]}>
-      {/* Objek 3D Botol Utama */}
       <group ref={modelGroupRef} position={[0, 0.5, 0]}>
 
-        {/* 1. Badan Botol Kaca/Plastik Transparan berlekuk */}
-        <mesh>
-          <latheGeometry args={[bottlePoints, 32]} />
+        {/* Muka Depan & Belakang: Tekstur Botol ISOPLUS Asli dari Foto Anda */}
+        {bottleTexture && (
+          <mesh position={[0, 0, 0]}>
+            <cylinderGeometry args={[0.5, 0.5, 1.8, 64, 1, true]} />
+            <meshStandardMaterial
+              map={bottleTexture}
+              transparent={true}
+              roughness={0.2}
+              metalness={0.1}
+              side={THREE.DoubleSide}
+              alphaTest={0.2}
+            />
+          </mesh>
+        )}
+
+        {/* Bodi Kaca Transparan Dalam Botol untuk Efek Volumetric 3D */}
+        <mesh position={[0, 0, 0]}>
+          <cylinderGeometry args={[0.48, 0.48, 1.78, 32]} />
           <meshPhysicalMaterial
             color="#0ea5e9"
-            emissive="#0284c7"
-            emissiveIntensity={0.2}
-            roughness={0.1}
-            metalness={0.1}
-            transmission={0.8}
-            thickness={0.5}
             transparent={true}
-            opacity={0.85}
+            opacity={0.3}
+            roughness={0.1}
+            transmission={0.6}
+            thickness={0.4}
           />
         </mesh>
 
-        {/* 2. Isi Cairan Isotonic Dalam Botol (Luminous Blue Liquid) */}
-        <mesh position={[0, -0.05, 0]} scale={[0.92, 0.88, 0.92]}>
-          <latheGeometry args={[bottlePoints, 32]} />
-          <meshStandardMaterial
-            color="#06b6d4"
-            emissive="#0891b2"
-            emissiveIntensity={0.5}
-            roughness={0.3}
-          />
+        {/* Tutup Botol 3D Biru */}
+        <mesh position={[0, 0.95, 0]}>
+          <cylinderGeometry args={[0.22, 0.22, 0.15, 32]} />
+          <meshStandardMaterial color="#0284c7" roughness={0.2} metalness={0.8} />
         </mesh>
 
-        {/* 3. Label Kemasan Botol (Yellow-Green Isotonic Branding Accent) */}
-        <mesh position={[0, 0.1, 0]}>
-          <cylinderGeometry args={[0.42, 0.42, 0.65, 32]} />
-          <meshStandardMaterial
-            color="#84cc16"
-            emissive="#65a30d"
-            emissiveIntensity={0.3}
-            roughness={0.2}
-            metalness={0.4}
-          />
-        </mesh>
-
-        {/* 4. Tutup Botol Metalik Bright (Blue Cap) */}
-        <mesh position={[0, 0.82, 0]}>
-          <cylinderGeometry args={[0.24, 0.24, 0.18, 32]} />
-          <meshStandardMaterial
-            color="#0284c7"
-            roughness={0.2}
-            metalness={0.8}
-          />
-        </mesh>
-
-        {/* 5. Aksen Ring Glow Emas/Cyan Sesuai Gaya img2threejs */}
-        <mesh position={[0, 0.1, 0]}>
-          <torusGeometry args={[0.46, 0.02, 16, 64]} />
+        {/* Ring Glow Cyan Khas img2threejs */}
+        <mesh position={[0, 0.0, 0]}>
+          <torusGeometry args={[0.52, 0.02, 16, 64]} />
           <meshBasicMaterial color="#38bdf8" />
         </mesh>
       </group>
 
-      {/* Podium Ground Studio (Dark Stage + Glowing Ring) */}
+      {/* Podium Studio */}
       <group position={[0, -0.5, 0]}>
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
           <ringGeometry args={[1.2, 1.25, 64]} />
@@ -201,7 +214,7 @@ function Img2ThreeJSBottleModel() {
         </mesh>
       </group>
 
-      {/* Garis Penunjuk Hubungan Foto Ref ke Model 3D */}
+      {/* Garis Penunjuk Hubungan Foto ke Model 3D */}
       <Line
         points={[[-2.0, 1.8, 0], [-0.8, 1.2, 0], [0, 0.8, 0]]}
         color="#38bdf8"
@@ -221,8 +234,8 @@ export default function SceneViewport({ presenterModel, isPresenting = false }: 
     : presenterModel?.id || presenterModel?.type || 'default';
 
   const renderModel = () => {
-    if (isImg2ThreeJS) {
-      return <Img2ThreeJSBottleModel />;
+    if (isImg2ThreeJS && presenterModel?.imageUrl) {
+      return <Img2ThreeJSBottleModel imageUrl={presenterModel.imageUrl} />;
     }
 
     switch (modelType) {
@@ -263,11 +276,10 @@ export default function SceneViewport({ presenterModel, isPresenting = false }: 
       )}
 
       <Canvas camera={{ position: [0, 1.2, 4.2], fov: 45 }}>
-        {/* Lighting Studio 3D (Reflektif & Glow) */}
-        <ambientLight intensity={0.9} />
-        <directionalLight position={[5, 8, 5]} intensity={2.0} color="#ffffff" />
-        <pointLight position={[-4, 2, -2]} intensity={1.8} color="#0284c7" />
-        <spotLight position={[0, 8, 0]} intensity={2.5} angle={0.5} penumbra={0.8} color="#38bdf8" />
+        {/* Studio Lighting */}
+        <ambientLight intensity={1.0} />
+        <directionalLight position={[5, 8, 5]} intensity={1.8} color="#ffffff" />
+        <pointLight position={[-4, 2, -2]} intensity={1.5} color="#0284c7" />
 
         <Stars radius={80} depth={50} count={2000} factor={3} saturation={0} fade speed={1} />
 
