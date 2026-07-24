@@ -1,4 +1,4 @@
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Stars, Float, Text } from '@react-three/drei';
 import * as THREE from 'three';
@@ -103,69 +103,128 @@ function PipelineDiagramAvatar() {
   );
 }
 
-// 5. REKONSTRUKSI PROCEDURAL 3D MURNI (Murni Mesh 3D tanpa gambar 2D)
-function Img2ThreeJSProceduralBottle() {
+// 5. REKONSTRUKSI MODEL BOTOL ISOPLUS 3D PRESISI (Berdasarkan kontur asli Isoplus)
+function Img2ThreeJSIsoplusBottle() {
   const bottleGroupRef = useRef<THREE.Group>(null!);
+
+  // Membuat kontur lekukan asli botol Isoplus
+  const points = useMemo(() => {
+    const pts: THREE.Vector2[] = [];
+    // Dasar botol
+    pts.push(new THREE.Vector2(0, -1.0));
+    pts.push(new THREE.Vector2(0.38, -1.0));
+    pts.push(new THREE.Vector2(0.42, -0.9));
+    // Bodi bawah
+    pts.push(new THREE.Vector2(0.43, -0.4));
+    // Lekukan grip/pinggang khas Isoplus
+    pts.push(new THREE.Vector2(0.36, -0.1));
+    pts.push(new THREE.Vector2(0.36, 0.2));
+    // Bodi atas (pundak botol)
+    pts.push(new THREE.Vector2(0.42, 0.5));
+    // Leher botol
+    pts.push(new THREE.Vector2(0.22, 0.85));
+    pts.push(new THREE.Vector2(0.2, 0.98));
+    // Ulur & Mulut botol
+    pts.push(new THREE.Vector2(0.22, 1.0));
+    return pts;
+  }, []);
 
   useFrame((_, delta) => {
     if (bottleGroupRef.current) {
-      bottleGroupRef.current.rotation.y += delta * 0.6;
+      bottleGroupRef.current.rotation.y += delta * 0.5;
     }
   });
 
   return (
-    <group position={[0, -0.2, 0]}>
-      {/* Objek Botol Isoplus Procedural 3D */}
-      <group ref={bottleGroupRef} position={[0, 0.3, 0]}>
+    <group position={[0, -0.1, 0]}>
+      <group ref={bottleGroupRef} position={[0, 0.2, 0]}>
         
-        {/* Bodi Utama Botol (Biru Elektrik Berkilau) */}
-        <mesh position={[0, 0, 0]}>
-          <cylinderGeometry args={[0.42, 0.45, 1.6, 32]} />
+        {/* Bodi Utama Botol Plastik Transparan Berlekuk */}
+        <mesh>
+          <latheGeometry args={[points, 32]} />
           <meshPhysicalMaterial
             color="#0ea5e9"
-            roughness={0.1}
-            metalness={0.2}
+            roughness={0.15}
+            metalness={0.1}
+            transmission={0.4}
+            opacity={0.85}
+            transparent
             clearcoat={1}
             clearcoatRoughness={0.1}
           />
         </mesh>
 
-        {/* Label Isoplus Modern Metallic Glow Band */}
+        {/* Label Plastik Kuning-Biru ISOPLUS (Membungkus Bodi) */}
         <mesh position={[0, 0.05, 0]}>
-          <cylinderGeometry args={[0.43, 0.43, 0.8, 32]} />
+          <cylinderGeometry args={[0.39, 0.39, 0.75, 32, 1, true]} />
           <meshStandardMaterial
             color="#0284c7"
-            emissive="#0369a1"
-            emissiveIntensity={0.4}
             roughness={0.3}
-            metalness={0.6}
+            metalness={0.2}
+            side={THREE.DoubleSide}
           />
         </mesh>
 
-        {/* Aksesori Stripe Hijau / Kuning Isoplus */}
-        <mesh position={[0, 0.1, 0]}>
-          <cylinderGeometry args={[0.435, 0.435, 0.2, 32]} />
-          <meshStandardMaterial color="#84cc16" emissive="#65a30d" emissiveIntensity={0.6} />
+        {/* Aksesori Stripe Kuning Khas Isoplus */}
+        <mesh position={[0, 0.28, 0]}>
+          <cylinderGeometry args={[0.395, 0.395, 0.18, 32, 1, true]} />
+          <meshStandardMaterial color="#eab308" emissive="#ca8a04" emissiveIntensity={0.5} side={THREE.DoubleSide} />
         </mesh>
 
-        {/* Leher Botol Transparan */}
-        <mesh position={[0, 0.9, 0]}>
-          <cylinderGeometry args={[0.22, 0.38, 0.2, 32]} />
-          <meshPhysicalMaterial color="#38bdf8" roughness={0.1} transmission={0.6} opacity={0.8} transparent />
-        </mesh>
+        {/* Logo Text ISOPLUS 3D Depan */}
+        <Text
+          position={[0, 0.08, 0.41]}
+          fontSize={0.22}
+          color="#ffffff"
+          fontWeight="bold"
+          anchorX="center"
+          anchorY="middle"
+        >
+          ISOPLUS
+        </Text>
 
-        {/* Tutup Botol High-Detail */}
+        {/* Logo Text ISOPLUS 3D Belakang */}
+        <Text
+          position={[0, 0.08, -0.41]}
+          rotation={[0, Math.PI, 0]}
+          fontSize={0.22}
+          color="#ffffff"
+          fontWeight="bold"
+          anchorX="center"
+          anchorY="middle"
+        >
+          ISOPLUS
+        </Text>
+
+        {/* Sub-Text ISOTONIC */}
+        <Text
+          position={[0, -0.12, 0.41]}
+          fontSize={0.09}
+          color="#facc15"
+          anchorX="center"
+          anchorY="middle"
+        >
+          ISOTONIC DRINK
+        </Text>
+
+        {/* Tutup Botol Biru Khas Isoplus */}
         <mesh position={[0, 1.05, 0]}>
-          <cylinderGeometry args={[0.24, 0.24, 0.12, 32]} />
-          <meshStandardMaterial color="#0284c7" roughness={0.2} metalness={0.8} />
+          <cylinderGeometry args={[0.23, 0.23, 0.14, 32]} />
+          <meshStandardMaterial color="#0369a1" roughness={0.2} metalness={0.6} />
         </mesh>
 
-        {/* Light Glow Core Internal */}
-        <pointLight position={[0, 0, 0]} color="#38bdf8" intensity={2} distance={2} />
+        {/* Ring Tutup Botol */}
+        <mesh position={[0, 0.96, 0]}>
+          <cylinderGeometry args={[0.24, 0.24, 0.04, 32]} />
+          <meshStandardMaterial color="#0284c7" />
+        </mesh>
+
+        {/* Glow Light Internal */}
+        <pointLight position={[0, 0, 0]} color="#38bdf8" intensity={1.5} distance={2} />
       </group>
 
-      {/* Podium Lingkaran Neon 3D */}
-      <group position={[0, -0.6, 0]}>
+      {/* Podium Panggung Neon 3D */}
+      <group position={[0, -0.8, 0]}>
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
           <ringGeometry args={[1.0, 1.05, 64]} />
           <meshBasicMaterial color="#38bdf8" side={THREE.DoubleSide} />
@@ -177,15 +236,15 @@ function Img2ThreeJSProceduralBottle() {
         </mesh>
       </group>
 
-      {/* Label Nama Objek di Bawah */}
+      {/* Label Nama Objek di Bawah (Gaya img2threejs) */}
       <Text
-        position={[0, -0.9, 0]}
-        fontSize={0.18}
+        position={[0, -1.15, 0]}
+        fontSize={0.16}
         color="#94a3b8"
         anchorX="center"
         anchorY="middle"
       >
-        Isotonic Drink Bottle
+        ISOPLUS Isotonic Bottle
       </Text>
     </group>
   );
@@ -200,7 +259,7 @@ export default function SceneViewport({ presenterModel, isPresenting = false }: 
 
   const renderModel = () => {
     if (isImg2ThreeJS) {
-      return <Img2ThreeJSProceduralBottle />;
+      return <Img2ThreeJSIsoplusBottle />;
     }
 
     switch (modelType) {
@@ -219,7 +278,7 @@ export default function SceneViewport({ presenterModel, isPresenting = false }: 
 
   return (
     <div className="w-full h-full relative overflow-hidden bg-slate-950">
-      {/* Overlay UI - Source Photo (Kiri Atas) */}
+      {/* Source Photo UI (Kiri Atas) */}
       {isImg2ThreeJS && presenterModel?.imageUrl && (
         <div className="absolute top-6 left-6 z-10 bg-slate-900/90 backdrop-blur-md p-2 rounded-xl border border-sky-500/40 shadow-2xl flex flex-col items-center">
           <div className="w-24 h-24 rounded-lg overflow-hidden border border-slate-700 bg-black">
@@ -231,7 +290,7 @@ export default function SceneViewport({ presenterModel, isPresenting = false }: 
         </div>
       )}
 
-      {/* Overlay UI - RESULT IN CODE (Kanan Bawah) */}
+      {/* RESULT IN CODE UI (Kanan Bawah) */}
       {isImg2ThreeJS && (
         <div className="absolute bottom-6 right-6 z-10">
           <span className="text-[10px] text-sky-400 font-mono tracking-widest uppercase bg-slate-900/90 border border-sky-500/30 px-3 py-1.5 rounded-md shadow-lg">
@@ -241,11 +300,11 @@ export default function SceneViewport({ presenterModel, isPresenting = false }: 
       )}
 
       <Canvas camera={{ position: [0, 1.2, 4.2], fov: 45 }}>
-        {/* Studio Cinematic Lighting */}
+        {/* Pencahayaan Sinematik Studio */}
         <ambientLight intensity={1.5} />
         <directionalLight position={[5, 8, 5]} intensity={2.0} color="#ffffff" />
         <pointLight position={[-4, 2, -2]} intensity={2.0} color="#0284c7" />
-        <pointLight position={[4, -2, 2]} intensity={1.5} color="#38bdf8" />
+        <pointLight position={[4, -2, 2]} intensity={1.5} color="#eab308" />
 
         <Stars radius={80} depth={50} count={2500} factor={3} saturation={0} fade speed={1} />
 
