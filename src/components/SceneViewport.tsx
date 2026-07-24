@@ -103,10 +103,10 @@ function PipelineDiagramAvatar() {
   );
 }
 
-// 5. REKONSTRUKSI ISOLATED 3D CARD (TANPA DISTORSI SILINDER & TANPA BACKGROUND)
+// 5. REKONSTRUKSI MODEL BOTOL ISOPLUS 3D PRESISI
 function Img2ThreeJSBottleModel({ imageUrl }: { imageUrl: string }) {
   const modelGroupRef = useRef<THREE.Group>(null!);
-  const [cleanTexture, setCleanTexture] = useState<THREE.CanvasTexture | null>(null);
+  const [photoTexture, setPhotoTexture] = useState<THREE.CanvasTexture | null>(null);
 
   useEffect(() => {
     const img = new Image();
@@ -118,72 +118,78 @@ function Img2ThreeJSBottleModel({ imageUrl }: { imageUrl: string }) {
       if (!ctx) return;
 
       canvas.width = 512;
-      canvas.height = 1024;
+      canvas.height = 512;
 
-      // Crop khusus area tengah tempat botol berada
-      const cropW = img.width * 0.45;
-      const cropH = img.height * 0.85;
+      // Ambil secara khusus area stiker/tulisan ISOPLUS dari foto
+      const cropW = img.width * 0.4;
+      const cropH = img.height * 0.6;
       const cropX = (img.width - cropW) / 2;
       const cropY = (img.height - cropH) / 2;
 
       ctx.drawImage(img, cropX, cropY, cropW, cropH, 0, 0, canvas.width, canvas.height);
 
-      // Pembersihan Warna Background Luar
-      const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const data = imgData.data;
-
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i];
-        const g = data[i + 1];
-        const b = data[i + 2];
-
-        // Masking warna latar belakang terang / krem / cokelat meja
-        if ((r > 160 && g > 150 && b > 140) || (r > 180 && g > 180 && b > 180)) {
-          data[i + 3] = 0;
-        }
-      }
-      ctx.putImageData(imgData, 0, 0);
-
       const tex = new THREE.CanvasTexture(canvas);
       tex.colorSpace = THREE.SRGBColorSpace;
-      setCleanTexture(tex);
+      setPhotoTexture(tex);
     };
   }, [imageUrl]);
 
   useFrame((_, delta) => {
     if (modelGroupRef.current) {
-      // Rotasi mengayun lembut agar tetap terlihat sebagai objek di panggung 3D
-      modelGroupRef.current.rotation.y = Math.sin(Date.now() * 0.0015) * 0.35;
+      modelGroupRef.current.rotation.y += delta * 0.5;
     }
   });
 
   return (
     <group position={[0, -0.2, 0]}>
-      <group ref={modelGroupRef} position={[0, 0.6, 0]}>
+      <group ref={modelGroupRef} position={[0, 0.4, 0]}>
 
-        {/* Panel 3D Utama: Menampilkan Foto Botol Presisi Tanpa Terlipat */}
-        {cleanTexture && (
-          <mesh position={[0, 0, 0]}>
-            <planeGeometry args={[1.1, 2.2]} />
+        {/* Bodi Utama Botol 3D Transparan (Bentuk Botol Isoplus Nyata) */}
+        <mesh position={[0, 0, 0]}>
+          <cylinderGeometry args={[0.42, 0.45, 1.8, 32]} />
+          <meshPhysicalMaterial
+            color="#0ea5e9"
+            transparent
+            opacity={0.65}
+            roughness={0.1}
+            transmission={0.5}
+            thickness={0.5}
+          />
+        </mesh>
+
+        {/* Label Merek ISOPLUS Asli dari Foto Camera */}
+        {photoTexture && (
+          <mesh position={[0, 0.05, 0]}>
+            <cylinderGeometry args={[0.43, 0.43, 0.95, 32, 1, true]} />
             <meshStandardMaterial
-              map={cleanTexture}
-              transparent={true}
+              map={photoTexture}
+              roughness={0.3}
               side={THREE.DoubleSide}
-              alphaTest={0.15}
-              roughness={0.2}
             />
           </mesh>
         )}
 
-        {/* Halo Glow Cyan di Belakang Objek */}
-        <mesh position={[0, 0, -0.05]}>
-          <ringGeometry args={[0.8, 1.1, 64]} />
-          <meshBasicMaterial color="#38bdf8" transparent opacity={0.3} side={THREE.DoubleSide} />
+        {/* Tutup Botol Biru Presisi */}
+        <mesh position={[0, 0.98, 0]}>
+          <cylinderGeometry args={[0.22, 0.22, 0.16, 32]} />
+          <meshStandardMaterial color="#0284c7" roughness={0.2} metalness={0.8} />
+        </mesh>
+
+        {/* Leher Botol */}
+        <mesh position={[0, 0.85, 0]}>
+          <cylinderGeometry args={[0.25, 0.4, 0.12, 32]} />
+          <meshPhysicalMaterial color="#0ea5e9" transparent opacity={0.6} roughness={0.1} />
+        </mesh>
+
+        {/* Ring Glowing Cyan */}
+        <mesh position={[0, -0.9, 0]}>
+          <torusGeometry args={[0.5, 0.015, 16, 64]} />
+          <meshBasicMaterial color="#38bdf8" />
         </mesh>
       </group>
 
-      {/* Podium Ground Studio */}
-      <group position={[0, -0.5, 0]}>
+      {/* Podium Ground */}
+      <group position={[0, -0.6, 0]}>
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]}>
           <ringGeometry args={[1.2, 1.25, 64]} />
           <meshBasicMaterial color="#38bdf8" side={THREE.DoubleSide} />
@@ -195,7 +201,7 @@ function Img2ThreeJSBottleModel({ imageUrl }: { imageUrl: string }) {
         </mesh>
       </group>
 
-      {/* Garis Penunjuk Hubungan Foto ke Model 3D */}
+      {/* Line Connector */}
       <Line
         points={[[-2.0, 1.8, 0], [-0.8, 1.2, 0], [0, 0.8, 0]]}
         color="#38bdf8"
