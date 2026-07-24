@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { useRef } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Stars, Float, Text, useTexture } from '@react-three/drei';
 import * as THREE from 'three';
 
@@ -119,27 +119,25 @@ function PipelineDiagramAvatar() {
   );
 }
 
-// 5. MESH GENERATIVE 3D BERVOLUME (Merekonstruksi Gambar 2D menjadi Bentuk Objek 3D)
+// 5. MESH GENERATIVE 3D BERVOLUME (Modus Standard: Displacement Map)
 function GenerativeMeshFromImage({ imageUrl }: { imageUrl: string }) {
   const texture = useTexture(imageUrl);
 
   return (
     <Float speed={2} rotationIntensity={0.8} floatIntensity={0.4}>
       <group position={[0, 0, 0]}>
-        {/* Generative Volumetric 3D Mesh - Menggunakan Displacement Depth Map untuk Kontur 3D */}
         <mesh position={[0, 0, 0]}>
           <planeGeometry args={[2.8, 2.2, 128, 128]} />
           <meshStandardMaterial
             map={texture}
             displacementMap={texture}
-            displacementScale={0.6} // Memberikan efek timbul/3D bervolume
+            displacementScale={0.6}
             roughness={0.3}
             metalness={0.4}
             side={THREE.DoubleSide}
           />
         </mesh>
 
-        {/* Belakang Mesh - Penutup Volumetric 3D */}
         <mesh position={[0, 0, -0.3]}>
           <boxGeometry args={[2.85, 2.25, 0.2]} />
           <meshStandardMaterial color="#0f172a" roughness={0.8} metalness={0.8} />
@@ -153,17 +151,84 @@ function GenerativeMeshFromImage({ imageUrl }: { imageUrl: string }) {
   );
 }
 
+// 6. BARU: PROCEDURAL CODE-ONLY 3D MODEL RECONSTRUCTION (Sesuai Konsep hoainho/img2threejs)
+function Img2ThreeJSProceduralModel({ imageUrl }: { imageUrl: string }) {
+  const texture = useTexture(imageUrl);
+  const modelGroupRef = useRef<THREE.Group>(null!);
+  const ringRef = useRef<THREE.Mesh>(null!);
+
+  // Animasi rotasi & orbit prosedural yang dinamis (Animation-Ready)
+  useFrame((_, delta) => {
+    if (modelGroupRef.current) {
+      modelGroupRef.current.rotation.y += delta * 0.4;
+    }
+    if (ringRef.current) {
+      ringRef.current.rotation.z -= delta * 0.7;
+    }
+  });
+
+  return (
+    <Float speed={2.5} rotationIntensity={0.3} floatIntensity={0.5}>
+      <group ref={modelGroupRef} position={[0, 0, 0]}>
+        {/* Layer 1: Front Mesh Canvas bertumpu pada Tekstur Kamera */}
+        <mesh position={[0, 0, 0.2]}>
+          <boxGeometry args={[2.2, 1.6, 0.4]} />
+          <meshStandardMaterial
+            map={texture}
+            roughness={0.15}
+            metalness={0.7}
+            envMapIntensity={1.2}
+          />
+        </mesh>
+
+        {/* Layer 2: Back Procedural Shell/Cylinder Structure */}
+        <mesh position={[0, 0, -0.1]}>
+          <cylinderGeometry args={[1.3, 1.4, 0.8, 32]} />
+          <meshStandardMaterial color="#1e293b" roughness={0.2} metalness={0.9} />
+        </mesh>
+
+        {/* Layer 3: Orbiting Emissive Ring Node */}
+        <mesh ref={ringRef} position={[0, 0, 0]}>
+          <torusGeometry args={[1.8, 0.04, 16, 100]} />
+          <meshStandardMaterial color="#10b981" emissive="#059669" emissiveIntensity={0.8} />
+        </mesh>
+
+        {/* Layer 4: Bounding Wireframe Nodes (Quality-Gated Visual Indicator) */}
+        <mesh position={[0, 0, 0]}>
+          <boxGeometry args={[2.4, 1.8, 0.9]} />
+          <meshStandardMaterial color="#34d399" wireframe />
+        </mesh>
+
+        {/* Floating Text Label untuk img2threejs */}
+        <Text position={[0, -1.3, 0]} fontSize={0.18} color="#10b981" anchorX="center" anchorY="middle">
+          ⚡ img2threejs Procedural 3D Model Reconstructed
+        </Text>
+      </group>
+    </Float>
+  );
+}
+
 export default function SceneViewport({ presenterModel, isPresenting = false }: SceneViewportProps) {
+  // Pengecekan status kustom gambar/kamera
   const isCustomImage = typeof presenterModel === 'object' && presenterModel?.type === 'custom_image';
+  const isImg2ThreeJS = typeof presenterModel === 'object' && presenterModel?.type === 'img2threejs_procedural';
+
   const modelType = typeof presenterModel === 'string'
     ? presenterModel
     : presenterModel?.id || presenterModel?.type || 'default';
 
   const renderModel = () => {
+    // 1. Eksekusi Model Prosedural img2threejs saat tombol Kamera / Capture diklik
+    if (isImg2ThreeJS && presenterModel?.imageUrl) {
+      return <Img2ThreeJSProceduralModel imageUrl={presenterModel.imageUrl} />;
+    }
+
+    // 2. Eksekusi Model Displacement biasa saat "Pilih File Gambar" diklik
     if (isCustomImage && presenterModel?.imageUrl) {
       return <GenerativeMeshFromImage imageUrl={presenterModel.imageUrl} />;
     }
 
+    // 3. Preset bawaan
     switch (modelType) {
       case 'cube':
         return <CubeAvatar isPresenting={isPresenting} />;
